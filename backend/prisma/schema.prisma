@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int                 @id @default(autoincrement())
+  email             String              @unique
+  password          String
+  name              String
+  role              UserRole
+  status            UserStatus
+  createdAt         DateTime            @default(now()) @map("created_at")
+  class_enrollments class_enrollments[]
+  classes           classes[]
+
+  @@map("users")
+}
+
+model class_enrollments {
+  id          Int      @id @default(autoincrement())
+  class_id    Int
+  student_id  Int
+  enrolled_at DateTime @default(now())
+  classes     classes  @relation(fields: [class_id], references: [id])
+  users       User     @relation(fields: [student_id], references: [id])
+
+  @@unique([class_id, student_id])
+}
+
+model classes {
+  id                Int                 @id @default(autoincrement())
+  name              String
+  description       String?
+  teacher_id        Int
+  created_at        DateTime            @default(now())
+  class_enrollments class_enrollments[]
+  users             User                @relation(fields: [teacher_id], references: [id])
+}
+
+enum UserRole {
+  admin
+  teacher
+  student
+}
+
+enum UserStatus {
+  pending
+  approved
+  rejected
+}
