@@ -25,16 +25,130 @@ A full-stack application for managing online courses, student enrollments, assig
 - PostgreSQL database
 - npm or yarn
 
-### Installation
+### Platform-Specific Setup Instructions
 
-#### Clone the repository
+<details>
+<summary><b>Windows Setup</b></summary>
 
-```bash
-git clone <repository-url>
-cd lmsbase
+#### PostgreSQL Setup (Windows)
+
+1. Download and install PostgreSQL from [the official website](https://www.postgresql.org/download/windows/)
+2. During installation, set a password for the 'postgres' user
+3. After installation, create a database:
+   ```
+   # Open Command Prompt as administrator
+   psql -U postgres
+   # Enter your password when prompted
+   CREATE DATABASE lms;
+   \q
+   ```
+4. Update your `.env` file with your credentials:
+   ```
+   DATABASE_URL="postgresql://postgres:your_password@localhost:5432/lms?schema=public"
+   ```
+
+#### Backend Setup (Windows)
+
+1. Navigate to the backend directory:
+
+```powershell
+cd .\backend
 ```
 
-#### Backend Setup
+2. Install dependencies:
+
+```powershell
+npm install
+```
+
+3. Setup environment variables:
+   Create a `.env` file in the backend directory with the following contents:
+
+```
+DATABASE_URL="postgresql://postgres:your_password@localhost:5432/lms?schema=public"
+JWT_SECRET="your-secret-key"
+PORT=3001
+```
+
+4. Run database migrations:
+
+```powershell
+npx prisma migrate dev
+```
+
+5. Seed the database (optional):
+
+```powershell
+npx prisma db seed
+```
+
+6. Start the backend server:
+
+```powershell
+npm run dev
+```
+
+#### Frontend Setup (Windows)
+
+1. Open a new PowerShell window and navigate to the frontend directory:
+
+```powershell
+cd C:\path\to\lmsbase\frontend
+```
+
+2. Install dependencies:
+
+```powershell
+npm install
+```
+
+3. Setup environment variables:
+   Create a `.env.local` file in the frontend directory with the following contents:
+
+```
+NEXT_PUBLIC_API_URL="http://localhost:3001"
+```
+
+4. Start the frontend development server:
+
+```powershell
+npm run dev
+```
+
+#### Using the Start-Servers Script (Windows)
+
+For convenience, you can use the included PowerShell script to start both servers:
+
+```powershell
+# From the project root directory
+.\start-servers.ps1
+```
+
+**Note:** PowerShell doesn't support the `&&` operator for command chaining like bash. Use separate commands or the provided script instead.
+</details>
+
+<details>
+<summary><b>macOS Setup</b></summary>
+
+#### PostgreSQL Setup (macOS)
+
+1. Install PostgreSQL using Homebrew:
+   ```bash
+   brew install postgresql
+   brew services start postgresql
+   ```
+2. Create a database:
+   ```bash
+   psql postgres
+   CREATE DATABASE lms;
+   \q
+   ```
+3. Update your `.env` file with your credentials:
+   ```
+   DATABASE_URL="postgresql://postgres:@localhost:5432/lms?schema=public"
+   ```
+
+#### Backend Setup (macOS)
 
 1. Navigate to the backend directory:
 
@@ -49,12 +163,12 @@ npm install
 ```
 
 3. Setup environment variables:
-   Create a `.env` file in the backend directory with the following contents:
+   Create a `.env` file in the backend directory:
 
-```
-DATABASE_URL="postgresql://username:password@localhost:5432/lms?schema=public"
+```bash
+echo 'DATABASE_URL="postgresql://postgres:@localhost:5432/lms?schema=public"
 JWT_SECRET="your-secret-key"
-PORT=3001
+PORT=3001' > .env
 ```
 
 4. Run database migrations:
@@ -72,16 +186,15 @@ npx prisma db seed
 6. Start the backend server:
 
 ```bash
-# For PowerShell
 npm run dev
 ```
 
-#### Frontend Setup
+#### Frontend Setup (macOS)
 
-1. Navigate to the frontend directory:
+1. Open a new terminal window and navigate to the frontend directory:
 
 ```bash
-cd ../frontend
+cd /path/to/lmsbase/frontend
 ```
 
 2. Install dependencies:
@@ -91,26 +204,186 @@ npm install
 ```
 
 3. Setup environment variables:
-   Create a `.env.local` file in the frontend directory with the following contents:
+   Create a `.env.local` file in the frontend directory:
 
-```
-NEXT_PUBLIC_API_URL="http://localhost:3001"
+```bash
+echo 'NEXT_PUBLIC_API_URL="http://localhost:3001"' > .env.local
 ```
 
 4. Start the frontend development server:
 
 ```bash
-# For PowerShell
 npm run dev
 ```
 
-### PowerShell Notes
+#### Using a Bash Script (macOS)
 
-If you're using PowerShell, use separate commands instead of the `&&` operator:
+For convenience, you can create a bash script to start both servers. Create a file named `start-servers.sh` in the project root:
 
-```powershell
-cd C:\path\to\directory
+```bash
+#!/bin/bash
+
+# Start backend server
+echo "Starting backend server..."
+cd "$(dirname "$0")/backend" && npm run dev &
+
+# Wait a moment for backend to initialize
+sleep 2
+
+# Start frontend server
+echo "Starting frontend server..."
+cd "$(dirname "$0")/frontend" && npm run dev &
+
+echo "Servers started successfully!"
+echo "- Backend: http://localhost:3001"
+echo "- Frontend: http://localhost:3000"
+echo "Press Ctrl+C to stop both servers."
+
+wait
+```
+
+Make it executable and run it:
+
+```bash
+chmod +x start-servers.sh
+./start-servers.sh
+```
+</details>
+
+<details>
+<summary><b>Linux Setup</b></summary>
+
+#### PostgreSQL Setup (Ubuntu/Debian)
+
+1. Install PostgreSQL:
+   ```bash
+   sudo apt update
+   sudo apt install postgresql postgresql-contrib
+   sudo systemctl start postgresql
+   sudo systemctl enable postgresql
+   ```
+2. Create a database:
+   ```bash
+   sudo -u postgres psql
+   CREATE DATABASE lms;
+   \q
+   ```
+3. Update your `.env` file with your credentials:
+   ```
+   DATABASE_URL="postgresql://postgres:@localhost:5432/lms?schema=public"
+   ```
+
+#### Backend Setup (Linux)
+
+1. Navigate to the backend directory:
+
+```bash
+cd backend
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Setup environment variables:
+   Create a `.env` file in the backend directory:
+
+```bash
+echo 'DATABASE_URL="postgresql://postgres:@localhost:5432/lms?schema=public"
+JWT_SECRET="your-secret-key"
+PORT=3001' > .env
+```
+
+4. Run database migrations:
+
+```bash
+npx prisma migrate dev
+```
+
+5. Seed the database (optional):
+
+```bash
+npx prisma db seed
+```
+
+6. Start the backend server:
+
+```bash
 npm run dev
+```
+
+#### Frontend Setup (Linux)
+
+1. Open a new terminal window and navigate to the frontend directory:
+
+```bash
+cd /path/to/lmsbase/frontend
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Setup environment variables:
+   Create a `.env.local` file in the frontend directory:
+
+```bash
+echo 'NEXT_PUBLIC_API_URL="http://localhost:3001"' > .env.local
+```
+
+4. Start the frontend development server:
+
+```bash
+npm run dev
+```
+
+#### Using a Bash Script (Linux)
+
+For convenience, you can create a bash script to start both servers. Create a file named `start-servers.sh` in the project root:
+
+```bash
+#!/bin/bash
+
+# Start backend server
+echo "Starting backend server..."
+cd "$(dirname "$0")/backend" && npm run dev &
+
+# Wait a moment for backend to initialize
+sleep 2
+
+# Start frontend server
+echo "Starting frontend server..."
+cd "$(dirname "$0")/frontend" && npm run dev &
+
+echo "Servers started successfully!"
+echo "- Backend: http://localhost:3001"
+echo "- Frontend: http://localhost:3000"
+echo "Press Ctrl+C to stop both servers."
+
+wait
+```
+
+Make it executable and run it:
+
+```bash
+chmod +x start-servers.sh
+./start-servers.sh
+```
+</details>
+
+### Installation (General Steps)
+
+If you prefer general installation steps without platform-specific details, follow these instructions:
+
+#### Clone the repository
+
+```bash
+git clone <repository-url>
+cd lmsbase
 ```
 
 ## Usage Guide
