@@ -54,7 +54,7 @@ npm install
 ```
 DATABASE_URL="postgresql://username:password@localhost:5432/lms?schema=public"
 JWT_SECRET="your-secret-key"
-PORT=3001
+PORT=5000
 ```
 
 4. Run database migrations:
@@ -94,7 +94,7 @@ npm install
    Create a `.env.local` file in the frontend directory with the following contents:
 
 ```
-NEXT_PUBLIC_API_URL="http://localhost:3001"
+NEXT_PUBLIC_API_URL="http://localhost:5000"
 ```
 
 4. Start the frontend development server:
