@@ -130,15 +130,9 @@ lmsbase/
 │   │   └── seed.ts
 │   ├── src/
 │   │   ├── controllers/
-│   │   │   ├── admin.controller.ts
-│   │   │   └── auth.controller.ts
 │   │   ├── middleware/
-│   │   │   └── auth.middleware.ts
 │   │   ├── models/
-│   │   │   └── user.ts
 │   │   ├── routes/
-│   │   │   ├── admin.routes.ts
-│   │   │   └── auth.routes.ts
 │   │   └── server.ts
 │   ├── .env
 │   └── package.json
@@ -146,22 +140,24 @@ lmsbase/
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── admin/
-│   │   │   │   └── dashboard/
 │   │   │   ├── login/
 │   │   │   ├── register/
 │   │   │   ├── student/
-│   │   │   │   └── dashboard/
 │   │   │   └── teacher/
-│   │   │       └── dashboard/
-│   │   ├── components/
-│   │   │   └── DashboardHeader.tsx
+│   │   └── components/
 │   └── package.json
+├── screenshots/
+│   └── admin-dashboard.png
 └── README.md
 ```
 
 ## Screenshots
 
-(Add screenshots here when available)
+### Admin Dashboard
+![Admin Dashboard](https://github.com/PrankurShukla/LMS_MVC/raw/main/screenshots/admin-dashboard.png)
+*Admin dashboard showing user statistics, distribution charts, and user management features*
+
+Screenshots will be updated as more features are developed.
 
 ## Contributing
 
