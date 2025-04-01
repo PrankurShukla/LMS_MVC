@@ -183,11 +183,12 @@ This is a Learning Management System (LMS) that allows:
 
 ### First Time Setup
 
-1. Register as an Admin:
-   - Go to http://localhost:3000/register
-   - Fill in your details
-   - Select "admin" as your role
-   - Click Register
+1. Login as Admin:
+   - Go to http://localhost:3000/login
+   - Use these default admin credentials:
+     - Email: admin@lms.com
+     - Password: admin123
+   - After logging in, you can manage user registrations and system settings
 
 2. Register as a Teacher:
    - Go to http://localhost:3000/register
@@ -202,6 +203,8 @@ This is a Learning Management System (LMS) that allows:
    - Select "student" as your role
    - Click Register
    - Wait for admin approval
+
+Note: Admin account is pre-created during database seeding and cannot be registered through the registration page.
 
 ### Common Problems and Solutions
 
