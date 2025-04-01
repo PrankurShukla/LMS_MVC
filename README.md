@@ -108,7 +108,7 @@ This is a Learning Management System (LMS) that allows:
    ```bash
    npm install
    ```
-4. Create a file named `.env` in the backend folder with this content:
+4. Create a file named `.env` in the backend folder with this exact content:
    ```
    # Server Configuration
    PORT=5000
@@ -123,7 +123,7 @@ This is a Learning Management System (LMS) that allows:
    # Frontend URL (for CORS)
    FRONTEND_URL=http://localhost:3000
    ```
-   Note: Make sure to replace `postgres` in the DATABASE_URL with your actual PostgreSQL password
+
 5. Set up the database:
    ```bash
    npx prisma migrate dev
@@ -144,7 +144,7 @@ This is a Learning Management System (LMS) that allows:
    ```bash
    npm install
    ```
-4. Create a file named `.env.local` in the frontend folder with this content:
+4. Create a file named `.env.local` in the frontend folder with this exact content:
    ```
    NEXT_PUBLIC_API_URL=http://localhost:5000
    ```
