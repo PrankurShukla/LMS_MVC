@@ -8,38 +8,99 @@ datasource db {
 }
 
 model User {
-  id                Int                 @id @default(autoincrement())
-  email             String              @unique
-  password          String
-  name              String
-  role              UserRole
-  status            UserStatus
-  createdAt         DateTime            @default(now()) @map("created_at")
-  class_enrollments class_enrollments[]
-  classes           classes[]
+  id                 Int                  @id @default(autoincrement())
+  email              String               @unique
+  password           String
+  name               String
+  role               UserRole
+  status             UserStatus
+  createdAt          DateTime             @default(now()) @map("created_at")
+  
+  // Relations
+  enrollments        Enrollment[]         // Student enrollments
+  teachingClasses    Class[]              // Classes taught by teacher
+  submittedAssignments AssignmentSubmission[] // Assignments submitted by student
 
   @@map("users")
 }
 
-model class_enrollments {
-  id          Int      @id @default(autoincrement())
-  class_id    Int
-  student_id  Int
-  enrolled_at DateTime @default(now())
-  classes     classes  @relation(fields: [class_id], references: [id])
-  users       User     @relation(fields: [student_id], references: [id])
+model Class {
+  id              Int               @id @default(autoincrement())
+  name            String
+  description     String?
+  teacherId       Int               @map("teacher_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  
+  // Relations
+  teacher         User              @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  enrollments     Enrollment[]
+  courseMaterials CourseMaterial[]
+  assignments     Assignment[]
 
-  @@unique([class_id, student_id])
+  @@map("classes")
 }
 
-model classes {
-  id                Int                 @id @default(autoincrement())
-  name              String
-  description       String?
-  teacher_id        Int
-  created_at        DateTime            @default(now())
-  class_enrollments class_enrollments[]
-  users             User                @relation(fields: [teacher_id], references: [id])
+model Enrollment {
+  id            Int             @id @default(autoincrement())
+  classId       Int             @map("class_id")
+  studentId     Int             @map("student_id")
+  status        EnrollmentStatus
+  enrolledAt    DateTime        @default(now()) @map("enrolled_at")
+  
+  // Relations
+  class         Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student       User            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+  @@map("enrollments")
+}
+
+model CourseMaterial {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  classId     Int       @map("class_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@map("course_materials")
+}
+
+model Assignment {
+  id                Int                   @id @default(autoincrement())
+  title             String
+  description       String
+  classId           Int                   @map("class_id")
+  dueDate           DateTime              @map("due_date")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  
+  // Relations
+  class             Class                 @relation(fields: [classId], references: [id], onDelete: Cascade)
+  submissions       AssignmentSubmission[]
+
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id            Int         @id @default(autoincrement())
+  assignmentId  Int         @map("assignment_id")
+  studentId     Int         @map("student_id")
+  content       String
+  grade         Int?
+  feedback      String?
+  submittedAt   DateTime    @default(now()) @map("submitted_at")
+  gradedAt      DateTime?   @map("graded_at")
+  
+  // Relations
+  assignment    Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student       User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+  @@map("assignment_submissions")
 }
 
 enum UserRole {
@@ -49,6 +110,12 @@ enum UserRole {
 }
 
 enum UserStatus {
+  pending
+  approved
+  rejected
+}
+
+enum EnrollmentStatus {
   pending
   approved
   rejected

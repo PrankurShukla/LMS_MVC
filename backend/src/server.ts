@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import adminRoutes from './routes/admin.routes';
+import classRoutes from './routes/class.routes';
+import morgan from 'morgan';
 
 dotenv.config();
 
@@ -20,6 +22,7 @@ const corsOptions = {
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(morgan('dev'));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -30,10 +33,11 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/classes', classRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to LMS API' });
+  res.json({ message: 'Welcome to the LMS API' });
 });
 
 // 404 handler
@@ -82,4 +86,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-}); 
+});
+
+export default app; 
