@@ -77,7 +77,7 @@ lmsbase/
 1. Backend Environment (backend/.env)
 ```env
 # Server Configuration
-PORT=3001
+PORT=5000
 NODE_ENV=development
 
 # Database Configuration
@@ -92,7 +92,7 @@ FRONTEND_URL=http://localhost:3000
 
 2. Frontend Environment (frontend/.env.local)
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
 
 ## Installation
@@ -133,51 +133,60 @@ npm install
 
 ## Default Users
 
-After seeding the database, you can log in with these accounts:
+After seeding the database, you can log in with these account:
 
 1. Admin:
    - Email: admin@lms.com
    - Password: admin123
 
-2. Teacher:
-   - Email: teacher@lms.com
-   - Password: teacher123
-
-3. Student:
-   - Email: student@lms.com
-   - Password: student123
 
 ## API Endpoints
 
-### Authentication
-- POST /api/auth/register - Register new user
-- POST /api/auth/login - User login
-- GET /api/auth/verify - Verify JWT token
+### Authentication Routes
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get current user's profile
 
-### Classes
-- GET /api/classes - List all classes
-- POST /api/classes - Create new class
-- GET /api/classes/:id - Get class details
-- PUT /api/classes/:id - Update class
-- DELETE /api/classes/:id - Delete class
+### Admin Routes
+- `GET /api/admin/pending-users` - Get all pending users
+- `GET /api/admin/users` - Get all users
+- `PUT /api/admin/users/:id/status` - Update user status (approve/reject)
+- `DELETE /api/admin/users/:id` - Delete user
 
-### Enrollments
-- POST /api/enrollments - Request enrollment
-- PUT /api/enrollments/:id - Update enrollment status
-- GET /api/enrollments/class/:id - Get class enrollments
-- GET /api/enrollments/student - Get student enrollments
+### Class Management Routes
+- `POST /api/classes` - Create a class (teachers only)
+- `PUT /api/classes/:id` - Update a class
+- `DELETE /api/classes/:id` - Delete a class
+- `GET /api/classes/:id` - Get a class by ID
+- `GET /api/classes/teacher/my-classes` - Get classes by logged in teacher
+- `GET /api/classes` - Get all classes
 
-### Course Materials
-- POST /api/materials - Add course material
-- GET /api/materials/class/:id - Get class materials
-- PUT /api/materials/:id - Update material
-- DELETE /api/materials/:id - Delete material
+### Enrollment Routes
+- `POST /api/classes/enroll` - Request enrollment (students only)
+- `PUT /api/classes/enrollments/:id/status` - Update enrollment status (teachers only)
+- `GET /api/classes/:classId/enrollments` - Get all enrollments for a class
+- `GET /api/classes/:classId/enrollments/pending` - Get pending enrollments
+- `GET /api/classes/student/my-enrollments` - Get student enrollments
 
-### Assignments
-- POST /api/assignments - Create assignment
-- GET /api/assignments/class/:id - Get class assignments
-- POST /api/assignments/:id/submit - Submit assignment
-- PUT /api/assignments/:id/grade - Grade submission
+### Course Material Routes
+- `POST /api/classes/materials` - Create course material (teachers only)
+- `PUT /api/classes/materials/:id` - Update course material
+- `DELETE /api/classes/materials/:id` - Delete course material
+- `GET /api/classes/:classId/materials` - Get materials for a class
+
+### Assignment Routes
+- `POST /api/classes/assignments` - Create assignment (teachers only)
+- `PUT /api/classes/assignments/:id` - Update assignment
+- `DELETE /api/classes/assignments/:id` - Delete assignment
+- `GET /api/classes/:classId/assignments` - Get assignments for a class
+- `GET /api/classes/assignments/:id` - Get assignment by ID
+
+### Assignment Submission Routes
+- `POST /api/classes/assignments/submit` - Submit assignment (students only)
+- `PUT /api/classes/submissions/:id/grade` - Grade submission (teachers only)
+- `GET /api/classes/assignments/:assignmentId/submissions` - Get submissions for an assignment
+- `GET /api/classes/student/submissions` - Get student submissions
+- `GET /api/classes/assignments/:assignmentId/my-submission` - Get specific student submission
 
 ## Contributing
 
