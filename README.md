@@ -1,43 +1,262 @@
 # Learning Management System (LMS)
 
-A modern Learning Management System built with Next.js 13, Express.js, and PostgreSQL. This system facilitates online education by managing classes, enrollments, course materials, and assignments.
+A modern Learning Management System built with Next.js 15, Express.js 5, and PostgreSQL. This system facilitates online education by managing classes, enrollments, course materials, and assignments.
+
+## Tech Stack Versions
+
+### Backend
+- Node.js (v16+)
+- Express.js 5.1.0
+- TypeScript 5.8.2
+- Prisma 6.5.0
+- PostgreSQL 12+
+- JWT 9.0.2
+
+### Frontend
+- Next.js 15.2.4
+- React 19.0.0
+- TypeScript 5
+- Tailwind CSS 4
+- React Hot Toast 2.5.2
 
 ## Features
 
-- **User Management**
-  - Role-based authentication (Admin, Teacher, Student)
-  - User registration with admin approval system
-  - Secure password handling and JWT authentication
+### User Management
+- **Role-Based Access Control**
+  - Admin: Full system access, user management
+  - Teacher: Class management, material creation, grading
+  - Student: Course access, assignment submission
+- **Authentication System**
+  - Secure JWT-based authentication
+  - Password hashing with bcryptjs
+  - Role-based route protection
+- **User Registration & Approval**
+  - Student self-registration
+  - Admin approval workflow
+  - Email-based account verification
 
-- **Class Management**
+### Class Management
+- **Class Creation & Management**
   - Teachers can create and manage classes
-  - Detailed class descriptions and materials
-  - Student enrollment system with approval workflow
-
+  - Detailed class descriptions and settings
+  - Class status tracking
+- **Enrollment System**
+  - Student enrollment requests
+  - Teacher approval/rejection
+  - Enrollment status tracking
 - **Course Materials**
-  - Upload and manage course materials
-  - Organized content per class
-  - Easy access for enrolled students
+  - Rich text content support
+  - Organized by class and topic
 
-- **Assignment System**
-  - Create and manage assignments with due dates
-  - Student submission system
-  - Grading and feedback functionality
+### Assignment System
+- **Assignment Management**
+  - Create assignments with due dates
+  - Detailed instructions and requirements
+- **Submission System**
+  - Student assignment submission
+  - Submission status tracking
+- **Grading & Feedback**
+  - Teacher grading interface
+  - Detailed feedback system
+  - Grade tracking and history
 
-## Tech Stack
+### Additional Features
+- **Real-time Updates**
+  - Live notifications for new assignments
+  - Grade updates
+  - Enrollment status changes
+- **Responsive Design**
+  - Mobile-friendly interface
+  - Adaptive layouts
+  - Touch-friendly controls
+- **Security Features**
+  - CSRF protection
+  - Rate limiting
+  - Input validation
+  - Secure file handling
 
-### Backend
-- Node.js with Express.js
-- TypeScript for type safety
-- Prisma ORM for database management
-- PostgreSQL database
-- JWT for authentication
+## Prerequisites
 
-### Frontend
-- Next.js 13 with App Router
-- TypeScript
-- Tailwind CSS for styling
-- React Query for state management
+Before you begin, make sure you have the following installed:
+
+1. **Node.js and npm**
+   - Download from [Node.js website](https://nodejs.org/)
+   - Choose the LTS (Long Term Support) version
+   - Verify installation:
+     ```bash
+     node --version  # Should show v16.x or higher
+     npm --version   # Should show 7.x or higher
+     ```
+
+2. **PostgreSQL**
+   - Download from [PostgreSQL website](https://www.postgresql.org/download/)
+   - During installation:
+     - Remember the password you set for the 'postgres' user
+     - Keep the default port (5432)
+   - Verify installation:
+     ```bash
+     psql --version
+     ```
+
+3. **Git**
+   - Download from [Git website](https://git-scm.com/downloads)
+   - Verify installation:
+     ```bash
+     git --version
+     ```
+
+## Step-by-Step Setup Guide
+
+### 1. Clone the Repository
+
+```bash
+# Clone the repository
+git clone https://github.com/PrankurShukla/LMS_MVC.git
+
+# Navigate to the project directory
+cd LMS_MVC
+```
+
+### 2. Set Up the Database
+
+1. **Create a PostgreSQL Database**
+   ```bash
+   # Connect to PostgreSQL
+   psql -U postgres
+
+   # Create the database
+   CREATE DATABASE lms_db;
+
+   # Exit PostgreSQL
+   \q
+   ```
+
+2. **Set Up Backend Environment**
+   ```bash
+   # Navigate to backend directory
+   cd backend
+
+   # Create .env file
+   touch .env
+   ```
+
+   Add the following to `backend/.env`:
+   ```env
+   # Server Configuration
+   PORT=5000
+   NODE_ENV=development
+
+   # Database Configuration
+   DATABASE_URL="postgresql://postgres:your_password@localhost:5432/lms_db"
+
+   # JWT Configuration
+   JWT_SECRET=your_jwt_secret_key
+
+   # Frontend URL (for CORS)
+   FRONTEND_URL=http://localhost:3000
+   ```
+
+3. **Install Backend Dependencies**
+   ```bash
+   # Install dependencies
+   npm install
+
+   # Generate Prisma client
+   npx prisma generate
+
+   # Run database migrations
+   npx prisma migrate dev
+
+   # Seed the database with initial data
+   npx prisma db seed
+   ```
+
+### 3. Set Up Frontend
+
+1. **Set Up Frontend Environment**
+   ```bash
+   # Navigate to frontend directory
+   cd ../frontend
+
+   # Create .env.local file
+   touch .env.local
+   ```
+
+   Add the following to `frontend/.env.local`:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:5000
+   ```
+
+2. **Install Frontend Dependencies**
+   ```bash
+   # Install dependencies
+   npm install
+   ```
+
+### 4. Start the Application
+
+1. **Start Backend Server**
+   ```bash
+   # From the backend directory
+   cd backend
+   npm run dev
+   ```
+
+2. **Start Frontend Server**
+   ```bash
+   # From the frontend directory
+   cd frontend
+   npm run dev
+   ```
+
+   Or use the provided scripts:
+   - Windows (PowerShell):
+     ```bash
+     ./start-servers.ps1
+     ```
+   - Linux/Mac:
+     ```bash
+     ./start-servers.sh
+     ```
+
+### 5. Access the Application
+
+- Open your browser and go to: `http://localhost:3000`
+- Use the following default credentials to log in:
+
+  **Admin Account:**
+  - Email: admin@lms.com
+  - Password: admin123
+
+  **Teacher Account:**
+  - Email: teacher@lms.com
+  - Password: teacher123
+
+  **Student Account:**
+  - Email: student@lms.com
+  - Password: student123
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Issues**
+   - Verify PostgreSQL is running
+   - Check if the password in `.env` matches your PostgreSQL password
+   - Ensure the database name matches what you created
+
+2. **Port Conflicts**
+   - If port 5000 is in use, change `PORT` in `backend/.env`
+   - If port 3000 is in use, Next.js will automatically use the next available port
+
+3. **Installation Errors**
+   - Clear npm cache: `npm cache clean --force`
+   - Delete `node_modules` and `package-lock.json`
+   - Run `npm install` again
+
+4. **Prisma Issues**
+   - Run `npx prisma generate` after any schema changes
+   - If migrations fail, try `npx prisma migrate reset`
 
 ## Project Structure
 
@@ -46,101 +265,47 @@ lmsbase/
 ├── backend/
 │   ├── prisma/
 │   │   ├── schema.prisma    # Database schema
-│   │   └── migrations/      # Database migrations
+│   │   ├── migrations/      # Database migrations
+│   │   └── seed.ts         # Database seeding script
 │   ├── src/
 │   │   ├── config/         # Configuration files
 │   │   ├── controllers/    # Request handlers
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── class.controller.ts
+│   │   │   └── admin.controller.ts
 │   │   ├── middleware/     # Custom middleware
+│   │   │   ├── auth.middleware.ts
+│   │   │   └── roles.ts
 │   │   ├── models/        # Data models
+│   │   │   ├── user.ts
+│   │   │   ├── class.ts
+│   │   │   └── enrollment.ts
 │   │   ├── routes/        # API routes
+│   │   │   ├── auth.routes.ts
+│   │   │   ├── class.routes.ts
+│   │   │   └── admin.routes.ts
 │   │   ├── lib/           # Utilities
+│   │   │   ├── prisma.ts
+│   │   │   └── jwt.ts
 │   │   └── server.ts      # Main server file
 │   └── .env               # Environment variables
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── app/          # Next.js pages
-│   │   └── components/   # React components
+│   │   │   ├── (auth)/   # Authentication pages
+│   │   │   ├── (dashboard)/ # Dashboard pages
+│   │   │   └── layout.tsx
+│   │   ├── components/   # React components
+│   │   │   ├── ui/      # UI components
+│   │   │   └── shared/  # Shared components
+│   │   └── lib/         # Utilities
 │   └── .env.local        # Frontend environment
 │
 └── start-servers.ps1     # Server startup script
 ```
 
-## Prerequisites
-
-- Node.js 16+
-- PostgreSQL 12+
-- npm or yarn
-
-## Environment Setup
-
-1. Backend Environment (backend/.env)
-```env
-# Server Configuration
-PORT=5000
-NODE_ENV=development
-
-# Database Configuration
-DATABASE_URL="postgresql://postgres:your_password@localhost:5432/lms_db"
-
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_key
-
-# Frontend URL (for CORS)
-FRONTEND_URL=http://localhost:3000
-```
-
-2. Frontend Environment (frontend/.env.local)
-```env
-NEXT_PUBLIC_API_URL=http://localhost:5000
-```
-
-## Installation
-
-1. Clone the repository
-```bash
-git clone https://github.com/PrankurShukla/LMS_MVC.git
-cd LMS_MVC
-```
-
-2. Install Backend Dependencies
-```bash
-cd backend
-npm install
-```
-
-3. Set up Database
-```bash
-npx prisma migrate dev
-npx prisma db seed
-```
-
-4. Install Frontend Dependencies
-```bash
-cd ../frontend
-npm install
-```
-
-5. Start the Application
-- Windows (PowerShell):
-```bash
-./start-servers.ps1
-```
-- Linux/Mac:
-```bash
-./start-servers.sh
-```
-
-## Default Users
-
-After seeding the database, you can log in with these account:
-
-1. Admin:
-   - Email: admin@lms.com
-   - Password: admin123
-
-
-## API Endpoints
+## API Documentation
 
 ### Authentication Routes
 - `POST /api/auth/register` - Register new user
