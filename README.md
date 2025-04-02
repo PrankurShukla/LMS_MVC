@@ -56,48 +56,177 @@ A modern Learning Management System built with Next.js and Express.js.
 
 ## Prerequisites
 
-1. Node.js (v18 or higher)
-2. PostgreSQL (v14 or higher)
-3. Git
+Before you begin, ensure you have the following installed:
 
-## Setup Guide
+1. **Node.js (v18 or higher)**
+   - Download from [Node.js website](https://nodejs.org/)
+   - Verify installation:
+     ```bash
+     node --version
+     npm --version
+     ```
 
-1. Clone the repository:
+2. **PostgreSQL (v14 or higher)**
+   - Download from [PostgreSQL website](https://www.postgresql.org/download/)
+   - Remember your PostgreSQL password during installation
+   - Verify installation:
+     ```bash
+     psql --version
+     ```
+
+3. **Git**
+   - Download from [Git website](https://git-scm.com/downloads)
+   - Verify installation:
+     ```bash
+     git --version
+     ```
+
+## Detailed Setup Guide
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd lms
+```
+
+### 2. Database Setup
+1. Open PostgreSQL command prompt:
    ```bash
-   git clone <repository-url>
-   cd lms
+   psql -U postgres
+   ```
+2. Create the database:
+   ```sql
+   CREATE DATABASE lms;
+   ```
+3. Verify the database was created:
+   ```sql
+   \l
+   ```
+4. Exit PostgreSQL:
+   ```sql
+   \q
    ```
 
-2. Set up the backend:
+### 3. Backend Setup
+1. Navigate to backend directory:
    ```bash
    cd backend
+   ```
+
+2. Install dependencies:
+   ```bash
    npm install
+   ```
+
+3. Create `.env` file:
+   ```bash
    cp .env.example .env
-   # Update .env with your database credentials
+   ```
+   
+4. Configure backend `.env` file with the following content:
+   ```env
+   # Server Configuration
+   PORT=5000
+   NODE_ENV=development
+
+   # Database Configuration
+   DATABASE_URL="postgresql://postgres:your_password@localhost:5432/lms"
+
+   # JWT Configuration
+   JWT_SECRET=your_secret_key_here
+
+   # Frontend URL (for CORS)
+   FRONTEND_URL=http://localhost:3000
+   ```
+   Replace `your_password` with your PostgreSQL password.
+
+5. Initialize the database:
+   ```bash
+   # Generate Prisma client
+   npx prisma generate
+
+   # Run database migrations
    npx prisma migrate dev
+
+   # Seed the database with initial data
    npx prisma db seed
    ```
 
-3. Set up the frontend:
+### 4. Frontend Setup
+1. Navigate to frontend directory:
    ```bash
-   cd frontend
+   cd ../frontend
+   ```
+
+2. Install dependencies:
+   ```bash
    npm install
-   cp .env.example .env.local
-   # Update .env.local with your backend URL
    ```
 
-4. Start the development servers:
+3. Create `.env.local` file:
    ```bash
-   # In backend directory
-   npm run dev
+   cp .env.example .env.local
+   ```
 
-   # In frontend directory
+4. Configure frontend `.env.local` file:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:5000
+   ```
+
+### 5. Start the Application
+
+1. Start the backend server (in backend directory):
+   ```bash
    npm run dev
    ```
 
-5. Access the application:
+2. In a new terminal, start the frontend server (in frontend directory):
+   ```bash
+   npm run dev
+   ```
+
+3. Access the application:
    - Frontend: http://localhost:3000
    - Backend: http://localhost:5000
+
+### 6. Default Login Credentials
+After running the seed script, you can log in with these accounts:
+
+```
+Admin:
+- Email: admin@lms.com
+- Password: admin123
+
+Teacher:
+- Email: teacher@lms.com
+- Password: teacher123
+
+Student:
+- Email: student@lms.com
+- Password: student123
+```
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+1. **Database Connection Error**
+   - Verify PostgreSQL is running
+   - Check if database name is 'lms'
+   - Ensure password in `.env` matches your PostgreSQL password
+   - Try connecting manually: `psql -U postgres -d lms`
+
+2. **Port Already in Use**
+   - Backend (5000): Check if another process is using port 5000
+   - Frontend (3000): Next.js will automatically use next available port
+
+3. **Prisma Issues**
+   - Run `npx prisma generate` after any schema changes
+   - For migration issues: `npx prisma migrate reset`
+
+4. **Module Not Found Errors**
+   - Delete `node_modules` and `package-lock.json`
+   - Run `npm install` again
 
 ## API Routes
 
@@ -169,22 +298,41 @@ GET /api/classes/:classId/students/inactive - Get inactive students
 PUT /api/classes/students/:id/status - Update student status
 ```
 
-## Default Credentials
-
-After running the seed script, you can log in with these default accounts:
-
+### User Management Routes
 ```
-Admin:
-- Email: admin@lms.com
-- Password: admin123
+GET /api/users/profile - Get user profile
+PUT /api/users/profile - Update user profile
+PUT /api/users/password - Change password
+```
 
-Teacher:
-- Email: teacher@lms.com
-- Password: teacher123
+### Dashboard Routes
+```
+GET /api/dashboard/stats - Get dashboard statistics
+GET /api/dashboard/recent-activities - Get recent activities
+```
 
-Student:
-- Email: student@lms.com
-- Password: student123
+## Project Structure
+```
+lmsbase/
+├── backend/
+│   ├── prisma/
+│   │   ├── schema.prisma    # Database schema
+│   │   ├── migrations/      # Database migrations
+│   │   └── seed.ts         # Seed data
+│   ├── src/
+│   │   ├── controllers/    # Request handlers
+│   │   ├── middleware/     # Custom middleware
+│   │   ├── routes/        # API routes
+│   │   ├── models/        # Data models
+│   │   └── server.ts      # Main server file
+│   └── .env               # Backend environment variables
+│
+├── frontend/
+│   ├── src/
+│   │   ├── app/          # Next.js pages
+│   │   ├── components/   # React components
+│   │   └── lib/         # Utilities
+│   └── .env.local       # Frontend environment variables
 ```
 
 ## Contributing
