@@ -175,7 +175,11 @@ export default function TeacherDashboard() {
       toast.success('Class created successfully');
       setShowNewClassModal(false);
       setNewClass({ name: '', description: '' });
-      fetchTeacherClasses(token as string);
+      // Fetch both classes and stats to update the UI
+      await Promise.all([
+        fetchTeacherClasses(token as string),
+        fetchDashboardStats(token as string)
+      ]);
     } catch (error) {
       console.error('Error creating class:', error);
       toast.error('Failed to create class');

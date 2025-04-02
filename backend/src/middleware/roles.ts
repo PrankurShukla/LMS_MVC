@@ -22,4 +22,4 @@ export const authorizeRoles = (roles: UserRole[]) => {
       return res.status(500).json({ message: 'Internal server error' });
     }
   };
-}; 
+};
