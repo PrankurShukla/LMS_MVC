@@ -28,6 +28,14 @@ interface Enrollment {
   classId: number;
 }
 
+interface DashboardStats {
+  totalClasses: number;
+  totalStudents: number;
+  activeStudents: number;
+  inactiveStudents: number;
+  pendingEnrollments: number;
+}
+
 export default function TeacherDashboard() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<{ name?: string, id?: number } | null>(null);
@@ -38,6 +46,13 @@ export default function TeacherDashboard() {
   const [newClass, setNewClass] = useState({
     name: '',
     description: '',
+  });
+  const [stats, setStats] = useState<DashboardStats>({
+    totalClasses: 0,
+    totalStudents: 0,
+    activeStudents: 0,
+    inactiveStudents: 0,
+    pendingEnrollments: 0
   });
 
   useEffect(() => {
@@ -58,6 +73,7 @@ export default function TeacherDashboard() {
       }
       setCurrentUser(user);
       fetchTeacherClasses(token);
+      fetchDashboardStats(token);
     } catch (error) {
       console.error('Error parsing user data:', error);
       router.push('/login');
@@ -108,6 +124,45 @@ export default function TeacherDashboard() {
     }
   };
 
+  const fetchDashboardStats = async (token: string) => {
+    try {
+      // Get all classes first
+      const classesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/teacher/my-classes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      let totalStudents = 0;
+      let activeStudents = 0;
+      let inactiveStudents = 0;
+      let pendingEnrollments = 0;
+
+      // For each class, get enrollment details
+      for (const classItem of classesResponse.data) {
+        const enrollmentsResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classItem.id}/enrollments`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const enrollments = enrollmentsResponse.data;
+        totalStudents += enrollments.length;
+        activeStudents += enrollments.filter((e: any) => e.status === 'approved').length;
+        inactiveStudents += enrollments.filter((e: any) => e.status === 'rejected').length;
+        pendingEnrollments += enrollments.filter((e: any) => e.status === 'pending').length;
+      }
+
+      setStats({
+        totalClasses: classesResponse.data.length,
+        totalStudents,
+        activeStudents,
+        inactiveStudents,
+        pendingEnrollments
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      toast.error('Failed to fetch dashboard statistics');
+    }
+  };
+
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -150,6 +205,17 @@ export default function TeacherDashboard() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <DashboardHeader title="Loading..." userName={currentUser?.name} />
+          <div className="mt-8 text-center">Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -164,20 +230,22 @@ export default function TeacherDashboard() {
         </div>
         
         {/* Statistics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-4 rounded shadow">
             <h2 className="font-semibold text-lg mb-2">Total Classes</h2>
-            <p className="text-3xl font-bold">{classes.length}</p>
+            <p className="text-3xl font-bold">{stats.totalClasses}</p>
           </div>
-          <div className="bg-white p-4 rounded shadow">
-            <h2 className="font-semibold text-lg mb-2">Total Students</h2>
-            <p className="text-3xl font-bold">
-              {classes.reduce((total, cls) => total + (cls._count?.enrollments || 0), 0)}
-            </p>
+          <div className="bg-green-50 p-4 rounded shadow">
+            <h2 className="font-semibold text-lg mb-2">Active Students</h2>
+            <p className="text-3xl font-bold">{stats.activeStudents}</p>
           </div>
-          <div className="bg-white p-4 rounded shadow">
+          <div className="bg-red-50 p-4 rounded shadow">
+            <h2 className="font-semibold text-lg mb-2">Inactive Students</h2>
+            <p className="text-3xl font-bold">{stats.inactiveStudents}</p>
+          </div>
+          <div className="bg-yellow-50 p-4 rounded shadow">
             <h2 className="font-semibold text-lg mb-2">Pending Enrollments</h2>
-            <p className="text-3xl font-bold">{pendingEnrollments.length}</p>
+            <p className="text-3xl font-bold">{stats.pendingEnrollments}</p>
           </div>
         </div>
 

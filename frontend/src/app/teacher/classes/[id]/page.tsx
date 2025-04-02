@@ -117,7 +117,7 @@ export default function TeacherClassDetail() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Link 
                 href={`/teacher/classes/${classId}/enrollments`} 
                 className="bg-blue-100 hover:bg-blue-200 text-blue-800 p-4 rounded-lg text-center"
@@ -138,6 +138,13 @@ export default function TeacherClassDetail() {
               >
                 <h3 className="text-lg font-semibold mb-2">Assignments</h3>
                 <p>Manage assignments and grades</p>
+              </Link>
+              <Link 
+                href={`/teacher/classes/${classId}/students`} 
+                className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 p-4 rounded-lg text-center"
+              >
+                <h3 className="text-lg font-semibold mb-2">Students</h3>
+                <p>View and manage students</p>
               </Link>
             </div>
           </div>
