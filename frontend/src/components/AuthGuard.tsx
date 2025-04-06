@@ -35,22 +35,13 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     // Check if user was logged out
     const wasLoggedOut = sessionStorage.getItem('userLoggedOut');
     if (wasLoggedOut === 'true') {
-      sessionStorage.clear();
       router.replace('/login');
       return;
     }
 
-    // Get user data from sessionStorage
-    const token = sessionStorage.getItem('token');
-    const userStr = sessionStorage.getItem('user');
-    const tokenExpiration = sessionStorage.getItem('tokenExpiration');
-
-    // Check token expiration
-    if (tokenExpiration && new Date().getTime() > parseInt(tokenExpiration)) {
-      sessionStorage.clear();
-      router.replace('/login');
-      return;
-    }
+    // Get user data from localStorage
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
 
     if (!token || !userStr) {
       setAuthorized(false);
@@ -79,20 +70,23 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
           setAuthorized(true);
         } else {
           // Token is invalid
-          sessionStorage.clear();
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
           setAuthorized(false);
           router.replace('/login');
         }
       })
       .catch(() => {
         // Error verifying token
-        sessionStorage.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setAuthorized(false);
         router.replace('/login');
       });
     } catch (error) {
       // Error parsing user data
-      sessionStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setAuthorized(false);
       router.replace('/login');
     }

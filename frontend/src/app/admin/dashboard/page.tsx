@@ -36,16 +36,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Check if user is logged in and is admin
     const checkAuth = () => {
-      const token = sessionStorage.getItem('token');
-      const userStr = sessionStorage.getItem('user');
-      const tokenExpiration = sessionStorage.getItem('tokenExpiration');
-      
-      // Check token expiration
-      if (tokenExpiration && new Date().getTime() > parseInt(tokenExpiration)) {
-        sessionStorage.clear();
-        router.push('/login');
-        return false;
-      }
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
       
       if (!token || !userStr) {
         router.push('/login');
@@ -118,16 +110,8 @@ export default function AdminDashboard() {
         const lastExit = sessionStorage.getItem('lastAdminDashboardExit');
         if (lastExit) {
           // If we have a record of leaving this page, check authentication again
-          const token = sessionStorage.getItem('token');
-          const userStr = sessionStorage.getItem('user');
-          const tokenExpiration = sessionStorage.getItem('tokenExpiration');
-          
-          // Check token expiration
-          if (tokenExpiration && new Date().getTime() > parseInt(tokenExpiration)) {
-            sessionStorage.clear();
-            router.push('/login');
-            return;
-          }
+          const token = localStorage.getItem('token');
+          const userStr = localStorage.getItem('user');
           
           if (!token || !userStr) {
             router.push('/login');
@@ -161,7 +145,7 @@ export default function AdminDashboard() {
   }, []);
 
   const getAuthHeaders = () => {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
@@ -176,7 +160,8 @@ export default function AdminDashboard() {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          sessionStorage.clear();
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
           router.push('/login');
           return;
         }
@@ -201,7 +186,8 @@ export default function AdminDashboard() {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          sessionStorage.clear();
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
           router.push('/login');
           return;
         }
@@ -220,7 +206,7 @@ export default function AdminDashboard() {
 
   const handleStatusUpdate = async (userId: number, status: 'approved' | 'rejected') => {
     try {
-      const token = sessionStorage.getItem('token');
+      const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/status`, {
         method: 'PUT',
         headers: {
@@ -244,7 +230,7 @@ export default function AdminDashboard() {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      const token = sessionStorage.getItem('token');
+      const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -263,71 +249,71 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardHeader title="Admin Dashboard" userName={currentUser?.name} />
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white shadow rounded-lg p-6 flex items-center">
-            <div className="rounded-full bg-blue-100 p-3 mr-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-gray-900">{stats.totalStudents}</div>
-              <div className="text-sm text-gray-500">Total Students</div>
+        
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200 border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-blue-100 bg-opacity-50">
+                <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">Total Students</h3>
+                <p className="mt-1 text-3xl font-semibold text-blue-600">{stats.totalStudents}</p>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white shadow rounded-lg p-6 flex items-center">
-            <div className="rounded-full bg-green-100 p-3 mr-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-gray-900">{stats.totalTeachers}</div>
-              <div className="text-sm text-gray-500">Total Teachers</div>
+          <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200 border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-green-100 bg-opacity-50">
+                <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">Total Teachers</h3>
+                <p className="mt-1 text-3xl font-semibold text-green-600">{stats.totalTeachers}</p>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white shadow rounded-lg p-6 flex items-center">
-            <div className="rounded-full bg-yellow-100 p-3 mr-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-gray-900">{stats.pendingCount}</div>
-              <div className="text-sm text-gray-500">Pending Approvals</div>
+          <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200 border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-yellow-100 bg-opacity-50">
+                <svg className="h-8 w-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">Pending Approvals</h3>
+                <p className="mt-1 text-3xl font-semibold text-yellow-600">{stats.pendingCount}</p>
+              </div>
             </div>
           </div>
         </div>
-        
-        {/* User Distribution Summary */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">User Distribution</h2>
+
+        {/* User Distribution */}
+        <div className="mt-8 bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">User Distribution</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Role Distribution */}
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* By Role */}
             <div>
-              <h3 className="text-md font-medium text-gray-700 mb-3">By Role</h3>
+              <h3 className="text-lg font-medium text-gray-700 mb-4">By Role</h3>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between mb-1">
                     <span className="text-sm font-medium text-gray-700">Students</span>
                     <span className="text-sm font-medium text-gray-700">{stats.studentPercentage}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${stats.studentPercentage}%` }}></div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${stats.studentPercentage}%` }}></div>
                   </div>
                 </div>
                 
@@ -336,8 +322,8 @@ export default function AdminDashboard() {
                     <span className="text-sm font-medium text-gray-700">Teachers</span>
                     <span className="text-sm font-medium text-gray-700">{stats.teacherPercentage}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${stats.teacherPercentage}%` }}></div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-green-600 h-2 rounded-full" style={{ width: `${stats.teacherPercentage}%` }}></div>
                   </div>
                 </div>
                 
@@ -346,130 +332,145 @@ export default function AdminDashboard() {
                     <span className="text-sm font-medium text-gray-700">Admins</span>
                     <span className="text-sm font-medium text-gray-700">{stats.adminPercentage}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div className="bg-purple-600 h-2.5 rounded-full" style={{ width: `${stats.adminPercentage}%` }}></div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${stats.adminPercentage}%` }}></div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            {/* Status Distribution */}
+
+            {/* By Status */}
             <div>
-              <h3 className="text-md font-medium text-gray-700 mb-3">By Status</h3>
+              <h3 className="text-lg font-medium text-gray-700 mb-4">By Status</h3>
               <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{stats.approvedCount}</div>
-                  <div className="text-sm text-gray-500">Approved</div>
+                <div className="bg-green-50 rounded-lg p-4">
+                  <p className="text-2xl font-bold text-green-600">{stats.approvedCount}</p>
+                  <p className="text-sm text-gray-600">Approved</p>
                 </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">{stats.pendingCount}</div>
-                  <div className="text-sm text-gray-500">Pending</div>
+                <div className="bg-yellow-50 rounded-lg p-4">
+                  <p className="text-2xl font-bold text-yellow-600">{stats.pendingCount}</p>
+                  <p className="text-sm text-gray-600">Pending</p>
                 </div>
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">{stats.rejectedCount}</div>
-                  <div className="text-sm text-gray-500">Rejected</div>
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <div className="text-md font-medium text-gray-700 mb-2">Total Users: {stats.totalUsers}</div>
-                <div className="flex h-4 rounded-full overflow-hidden">
-                  <div className="bg-green-500 h-4" style={{ width: `${stats.approvedCount / stats.totalUsers * 100}%` }}></div>
-                  <div className="bg-yellow-500 h-4" style={{ width: `${stats.pendingCount / stats.totalUsers * 100}%` }}></div>
-                  <div className="bg-red-500 h-4" style={{ width: `${stats.rejectedCount / stats.totalUsers * 100}%` }}></div>
-                </div>
-                <div className="flex justify-between text-xs mt-1">
-                  <span>Approved: {Math.round(stats.approvedCount / stats.totalUsers * 100) || 0}%</span>
-                  <span>Pending: {Math.round(stats.pendingCount / stats.totalUsers * 100) || 0}%</span>
-                  <span>Rejected: {Math.round(stats.rejectedCount / stats.totalUsers * 100) || 0}%</span>
+                <div className="bg-red-50 rounded-lg p-4">
+                  <p className="text-2xl font-bold text-red-600">{stats.rejectedCount}</p>
+                  <p className="text-sm text-gray-600">Rejected</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Pending Users Section */}
-        <div className="bg-white shadow rounded-lg mb-8 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Pending Approvals</h2>
+        {/* Pending Approvals Table */}
+        <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-100">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-900">Pending Approvals</h2>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead>
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {pendingUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.role}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{user.role}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
                         onClick={() => handleStatusUpdate(user.id, 'approved')}
-                        className="text-green-600 hover:text-green-900 mr-4"
+                        className="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md hover:bg-green-100 transition-colors"
                       >
                         Approve
                       </button>
                       <button
                         onClick={() => handleStatusUpdate(user.id, 'rejected')}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded-md hover:bg-red-100 transition-colors"
                       >
                         Reject
                       </button>
                     </td>
                   </tr>
                 ))}
+                {pendingUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                      No pending approvals
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* All Users Section */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">All Users</h2>
+        {/* All Users Table */}
+        <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-100">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-900">All Users</h2>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead>
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {users.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.role}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{user.role}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${user.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                          user.status === 'rejected' ? 'bg-red-100 text-red-800' : 
-                          'bg-yellow-100 text-yellow-800'}`}>
+                        ${user.status === 'approved' ? 'bg-green-100 text-green-800' : ''}
+                        ${user.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                        ${user.status === 'rejected' ? 'bg-red-100 text-red-800' : ''}`}
+                      >
                         {user.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-600 hover:text-red-900"
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this user?')) {
+                            handleDeleteUser(user.id);
+                          }
+                        }}
+                        className="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded-md hover:bg-red-100 transition-colors"
                       >
                         Delete
                       </button>
                     </td>
                   </tr>
                 ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                      No users found
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
+
+        {error && (
+          <div className="mt-4 bg-red-50 text-red-700 p-4 rounded-md">
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );
