@@ -13,16 +13,18 @@ export default function DashboardHeader({ title, userName }: DashboardHeaderProp
   const handleSignOut = () => {
     // Show confirmation dialog
     if (confirm('Are you sure you want to sign out?')) {
-      // Clear token and user data from localStorage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Clear all session data
+      sessionStorage.clear();
       
       // Add a flag to prevent browser back button navigation
       sessionStorage.setItem('userLoggedOut', 'true');
       
-      // Replace current history state instead of pushing a new one
-      // This makes it harder to navigate back to the protected page
+      // Clear browser history and redirect to login
+      window.history.pushState(null, '', '/login');
       router.replace('/login');
+      
+      // Force reload to clear any cached state
+      window.location.reload();
     }
   };
 

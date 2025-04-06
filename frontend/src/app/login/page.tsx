@@ -32,15 +32,22 @@ export default function Login() {
       // Clear the flag
       sessionStorage.removeItem('userLoggedOut');
       // Clear any auth data to be safe
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      sessionStorage.clear();
       setLoading(false);
       return;
     }
 
     // Check if user is already logged in
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
+    const token = sessionStorage.getItem('token');
+    const userStr = sessionStorage.getItem('user');
+    const tokenExpiration = sessionStorage.getItem('tokenExpiration');
+    
+    // Check token expiration
+    if (tokenExpiration && new Date().getTime() > parseInt(tokenExpiration)) {
+      sessionStorage.clear();
+      setLoading(false);
+      return;
+    }
     
     if (token && userStr) {
       try {
@@ -56,22 +63,19 @@ export default function Login() {
             // Token is valid, redirect based on role
             redirectUser(user.role);
           } else {
-            // Token is invalid, clear localStorage
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            // Token is invalid, clear sessionStorage
+            sessionStorage.clear();
             setLoading(false);
           }
         })
         .catch(() => {
-          // Error verifying token, clear localStorage
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          // Error verifying token, clear sessionStorage
+          sessionStorage.clear();
           setLoading(false);
         });
       } catch (error) {
-        // Error parsing user data, clear localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        // Error parsing user data, clear sessionStorage
+        sessionStorage.clear();
         setLoading(false);
       }
     } else {
@@ -97,9 +101,11 @@ export default function Login() {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Store token in localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Store token in sessionStorage with expiration
+      const expirationTime = new Date().getTime() + (8 * 60 * 60 * 1000); // 8 hours
+      sessionStorage.setItem('token', data.token);
+      sessionStorage.setItem('user', JSON.stringify(data.user));
+      sessionStorage.setItem('tokenExpiration', expirationTime.toString());
 
       // Redirect based on role
       redirectUser(data.user.role);

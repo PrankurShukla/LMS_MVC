@@ -36,8 +36,16 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Check if user is logged in and is admin
     const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
+      const token = sessionStorage.getItem('token');
+      const userStr = sessionStorage.getItem('user');
+      const tokenExpiration = sessionStorage.getItem('tokenExpiration');
+      
+      // Check token expiration
+      if (tokenExpiration && new Date().getTime() > parseInt(tokenExpiration)) {
+        sessionStorage.clear();
+        router.push('/login');
+        return false;
+      }
       
       if (!token || !userStr) {
         router.push('/login');
@@ -110,8 +118,16 @@ export default function AdminDashboard() {
         const lastExit = sessionStorage.getItem('lastAdminDashboardExit');
         if (lastExit) {
           // If we have a record of leaving this page, check authentication again
-          const token = localStorage.getItem('token');
-          const userStr = localStorage.getItem('user');
+          const token = sessionStorage.getItem('token');
+          const userStr = sessionStorage.getItem('user');
+          const tokenExpiration = sessionStorage.getItem('tokenExpiration');
+          
+          // Check token expiration
+          if (tokenExpiration && new Date().getTime() > parseInt(tokenExpiration)) {
+            sessionStorage.clear();
+            router.push('/login');
+            return;
+          }
           
           if (!token || !userStr) {
             router.push('/login');
@@ -145,7 +161,7 @@ export default function AdminDashboard() {
   }, []);
 
   const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
@@ -160,8 +176,7 @@ export default function AdminDashboard() {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          sessionStorage.clear();
           router.push('/login');
           return;
         }
@@ -186,8 +201,7 @@ export default function AdminDashboard() {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          sessionStorage.clear();
           router.push('/login');
           return;
         }
@@ -206,7 +220,7 @@ export default function AdminDashboard() {
 
   const handleStatusUpdate = async (userId: number, status: 'approved' | 'rejected') => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/status`, {
         method: 'PUT',
         headers: {
@@ -230,7 +244,7 @@ export default function AdminDashboard() {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
