@@ -53,9 +53,12 @@ export default function TeacherClassDetail() {
   }, [classId]);
 
   const handleSignOut = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
+    if (confirm('Are you sure you want to sign out?')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.setItem('userLoggedOut', 'true');
+      router.push('/login');
+    }
   };
 
   const fetchClassDetails = async (token: string, classId: string) => {
@@ -123,28 +126,17 @@ export default function TeacherClassDetail() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/teacher/dashboard"
-                className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm font-medium"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to Dashboard
-              </Link>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mt-2">{classDetails?.name}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{classDetails?.name}</h1>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium"
+          <Link
+            href="/teacher/dashboard"
+            className="text-blue-600 hover:text-blue-700 flex items-center gap-2 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Sign Out
-          </button>
+            Back to Dashboard
+          </Link>
         </div>
 
         {/* Class Information Card */}

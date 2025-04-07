@@ -260,9 +260,13 @@ export default function TeacherDashboard() {
   };
 
   const handleSignOut = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
+    if (confirm('Are you sure you want to sign out?')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Add a flag to prevent browser back button navigation
+      sessionStorage.setItem('userLoggedOut', 'true');
+      router.push('/login');
+    }
   };
 
   if (loading) {

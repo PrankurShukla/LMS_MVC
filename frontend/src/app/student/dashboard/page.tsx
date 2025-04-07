@@ -146,6 +146,16 @@ export default function StudentDashboard() {
   const pendingEnrollments = enrollments.filter(e => e.status === 'pending');
   const rejectedEnrollments = enrollments.filter(e => e.status === 'rejected');
 
+  const handleSignOut = () => {
+    if (confirm('Are you sure you want to sign out?')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Add a flag to prevent browser back button navigation
+      sessionStorage.setItem('userLoggedOut', 'true');
+      router.push('/login');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">

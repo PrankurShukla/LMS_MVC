@@ -65,6 +65,18 @@ export class UserModel {
     }
   }
 
+  static async updateProfile(userId: number, data: { name?: string; email?: string; password?: string }): Promise<User> {
+    try {
+      return await prisma.user.update({
+        where: { id: userId },
+        data
+      });
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw new Error('Failed to update user profile');
+    }
+  }
+
   static async getAllUsers() {
     try {
       return await prisma.user.findMany({

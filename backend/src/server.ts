@@ -4,11 +4,12 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import adminRoutes from './routes/admin.routes';
 import classRoutes from './routes/class.routes';
+import userRoutes from './routes/user.routes';
 import morgan from 'morgan';
+import app from './app';
 
 dotenv.config();
 
-const app = express();
 const port = process.env.PORT || 5000;
 
 // CORS configuration
@@ -34,6 +35,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/classes', classRoutes);
+app.use('/api/users', userRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

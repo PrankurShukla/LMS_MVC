@@ -31,6 +31,141 @@ interface Assignment {
   };
 }
 
+const SubmissionCard = ({ 
+  submission, 
+  onGrade 
+}: { 
+  submission: Submission; 
+  onGrade: (submission: Submission) => void;
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4 transition-all duration-200 ${
+        isHovered ? 'transform translate-y-[-2px] shadow-md' : ''
+      }`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">{submission.student.name}</h3>
+            <span className="text-sm text-gray-500">{submission.student.email}</span>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <p className="text-gray-700 whitespace-pre-wrap">{submission.content}</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-500">
+              Submitted: {new Date(submission.submittedAt).toLocaleString()}
+            </span>
+            {submission.grade !== undefined && (
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-1 rounded-full text-sm font-medium ${
+                  submission.grade >= 90 ? 'bg-green-100 text-green-800' :
+                  submission.grade >= 80 ? 'bg-blue-100 text-blue-800' :
+                  submission.grade >= 70 ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  Grade: {submission.grade}/100
+                </span>
+                {submission.feedback && (
+                  <span className="text-sm text-gray-500">
+                    Feedback: {submission.feedback}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={() => onGrade(submission)}
+          className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          {submission.grade !== undefined ? 'Update Grade' : 'Grade'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const GradeModal = ({
+  submission,
+  isOpen,
+  onClose,
+  onSubmit,
+  grade,
+  setGrade,
+  feedback,
+  setFeedback
+}: {
+  submission: Submission | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
+  grade: string;
+  setGrade: (grade: string) => void;
+  feedback: string;
+  setFeedback: (feedback: string) => void;
+}) => {
+  if (!isOpen || !submission) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-lg w-full p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          Grade Submission - {submission.student.name}
+        </h3>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Grade (0-100)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Feedback (optional)
+            </label>
+            <textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Provide feedback to the student..."
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Save Grade
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function AssignmentSubmissions() {
   const params = useParams();
   const classId = params.id as string;
@@ -151,171 +286,112 @@ export default function AssignmentSubmissions() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
-          <DashboardHeader 
-            title={`${assignment?.title || 'Assignment'} - Submissions`} 
-            userName={currentUser?.name} 
-          />
-          <Link 
-            href={`/teacher/classes/${classId}/assignments`} 
-            className="text-blue-500 hover:text-blue-700"
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{assignment?.title || 'Assignment'}</h1>
+            <p className="text-gray-500">
+              {assignment?.class?.name} • Due: {new Date(assignment?.dueDate || '').toLocaleString()}
+            </p>
+          </div>
+          <Link
+            href={`/teacher/classes/${classId}/assignments`}
+            className="flex items-center text-gray-600 hover:text-gray-900"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-5 h-5 mr-2"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
             Back to Assignments
           </Link>
         </div>
 
-        <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-          <div className="p-6">
-            <h2 className="text-xl font-bold mb-2">{assignment?.title}</h2>
-            <p className="text-gray-500 mb-4">
-              {assignment?.class?.name} • 
-              Due: {new Date(assignment?.dueDate || '').toLocaleDateString()} at {new Date(assignment?.dueDate || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </p>
-            <div className="prose max-w-none mb-6">
-              <p>{assignment?.description}</p>
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6">
+          <div className="prose max-w-none">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Assignment Details</h2>
+            <p className="text-gray-700">{assignment?.description}</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Student Submissions</h2>
+              <p className="text-gray-500">
+                {submissions.length} submission{submissions.length !== 1 ? 's' : ''} received
+              </p>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b">
-            <h2 className="text-xl font-bold">Student Submissions</h2>
-            <p className="text-sm text-gray-500">
-              {submissions.length} submission{submissions.length !== 1 ? 's' : ''} received
-            </p>
-          </div>
-          <div className="p-6">
-            {loading ? (
-              <div className="text-center py-6">Loading submissions...</div>
-            ) : submissions.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-gray-500">No submissions have been received for this assignment yet.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Student
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Submitted At
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Grade
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {submissions.map((submission) => (
-                      <tr key={submission.id}>
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900">{submission.student.name}</div>
-                          <div className="text-sm text-gray-500">{submission.student.email}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {new Date(submission.submittedAt).toLocaleDateString()} at {new Date(submission.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {submission.grade !== undefined && submission.grade !== null ? (
-                            <span className="px-2 py-1 text-sm rounded-full bg-green-100 text-green-800">
-                              {submission.grade}/100
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 text-sm rounded-full bg-yellow-100 text-yellow-800">
-                              Not Graded
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => openGradeModal(submission)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            {submission.grade !== undefined && submission.grade !== null ? 'Update Grade' : 'Grade'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Grade Modal */}
-      {showGradeModal && selectedSubmission && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-3xl">
-            <h2 className="text-xl font-bold mb-4">{selectedSubmission.grade !== undefined ? 'Update Grade' : 'Grade Submission'}</h2>
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold">Student: {selectedSubmission.student.name}</h3>
-              <p className="text-gray-500 mb-2">Submitted on {new Date(selectedSubmission.submittedAt).toLocaleDateString()}</p>
-              
-              <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <h4 className="font-medium mb-2">Submission:</h4>
-                <div className="whitespace-pre-line text-gray-800">
-                  {selectedSubmission.content}
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-5 w-40 bg-gray-200 rounded"></div>
+                    <div className="h-4 w-60 bg-gray-200 rounded"></div>
+                  </div>
+                  <div className="h-24 bg-gray-100 rounded mb-4"></div>
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                    <div className="h-8 w-24 bg-gray-200 rounded"></div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-            
-            <form onSubmit={handleGradeSubmit}>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="grade">
-                  Grade (0-100)
-                </label>
-                <input
-                  id="grade"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  required
+          ) : submissions.length === 0 ? (
+            <div className="text-center py-12">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="feedback">
-                  Feedback (Optional)
-                </label>
-                <textarea
-                  id="feedback"
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  rows={4}
-                  placeholder="Provide feedback to the student..."
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No submissions yet</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Waiting for students to submit their work.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {submissions.map((submission) => (
+                <SubmissionCard
+                  key={submission.id}
+                  submission={submission}
+                  onGrade={openGradeModal}
                 />
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowGradeModal(false)}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                >
-                  Save Grade
-                </button>
-              </div>
-            </form>
-          </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        <GradeModal
+          submission={selectedSubmission}
+          isOpen={showGradeModal}
+          onClose={() => setShowGradeModal(false)}
+          onSubmit={handleGradeSubmit}
+          grade={grade}
+          setGrade={setGrade}
+          feedback={feedback}
+          setFeedback={setFeedback}
+        />
+      </div>
     </div>
   );
 } 

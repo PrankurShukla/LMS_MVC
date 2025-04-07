@@ -248,6 +248,16 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSignOut = () => {
+    if (confirm('Are you sure you want to sign out?')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Add a flag to prevent browser back button navigation
+      sessionStorage.setItem('userLoggedOut', 'true');
+      router.push('/login');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
