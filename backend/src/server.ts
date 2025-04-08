@@ -31,6 +31,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check endpoint for Docker
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
