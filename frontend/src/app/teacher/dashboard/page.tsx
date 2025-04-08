@@ -196,7 +196,7 @@ export default function TeacherDashboard() {
 
   const handleEnrollmentStatusUpdate = async (enrollmentId: number, status: 'approved' | 'rejected') => {
     try {
-      const token = sessionStorage.getItem('token');
+      const token = localStorage.getItem('token');
       if (!token) {
         toast.error('Authentication token not found');
         router.push('/login');
@@ -250,7 +250,7 @@ export default function TeacherDashboard() {
       console.error(`Error ${status} enrollment:`, error);
       toast.error(error.response?.data?.message || `Failed to ${status} student`);
       
-      const token = sessionStorage.getItem('token');
+      const token = localStorage.getItem('token');
       if (token) {
         // Refresh data to ensure UI is in sync with server
         fetchDashboardStats(token);
@@ -489,6 +489,92 @@ export default function TeacherDashboard() {
             )}
           </div>
         </div>
+
+        {/* Pending Enrollment Requests Section */}
+        {pendingEnrollments.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-yellow-100 mt-8">
+            <div className="px-6 py-4 border-b border-yellow-100 bg-yellow-50 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                  <svg className="w-6 h-6 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Pending Enrollment Requests
+                </h2>
+                <span className="bg-yellow-200 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                  {pendingEnrollments.length} Request{pendingEnrollments.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Student
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Class
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {pendingEnrollments.map((enrollment) => {
+                      // Find the corresponding class name
+                      const className = classes.find(c => c.id === enrollment.classId)?.name || 'Unknown Class';
+                      
+                      return (
+                        <tr key={enrollment.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
+                                {enrollment.student.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{enrollment.student.name}</div>
+                                <div className="text-sm text-gray-500">{enrollment.student.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{className}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleEnrollmentStatusUpdate(enrollment.id, 'approved')}
+                                className="text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg flex items-center gap-1 transition-colors duration-200"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleEnrollmentStatusUpdate(enrollment.id, 'rejected')}
+                                className="text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg flex items-center gap-1 transition-colors duration-200"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Create Class Modal */}
         {showNewClassModal && (

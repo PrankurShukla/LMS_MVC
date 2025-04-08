@@ -41,7 +41,7 @@ const formatDueDate = (dateString: string) => {
 const getSubmissionStatus = (assignment: Assignment) => {
   if (assignment.submission?.grade !== undefined && assignment.submission?.grade !== null) {
     return {
-      text: 'Graded',
+      text: `Graded: ${assignment.submission.grade}/100`,
       color: 'bg-green-100 text-green-800',
       icon: (
         <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,6 +87,7 @@ const AssignmentCard = ({ assignment, onSubmit }: { assignment: Assignment; onSu
   const [isExpanded, setIsExpanded] = useState(false);
   const submissionStatus = getSubmissionStatus(assignment);
   const isPastDue = new Date(assignment.dueDate) < new Date();
+  const isGraded = assignment.submission?.grade !== undefined && assignment.submission?.grade !== null;
 
   return (
     <motion.div
@@ -108,6 +109,16 @@ const AssignmentCard = ({ assignment, onSubmit }: { assignment: Assignment; onSu
                 <span className="ml-2 text-red-500 font-medium">(Past due)</span>
               )}
             </div>
+            {isGraded && (
+              <div className="mt-2 flex items-center">
+                <span className="font-medium text-green-700 flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Grade: {assignment.submission.grade}/100
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-3">
             <div className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${submissionStatus.color}`}>
@@ -120,11 +131,10 @@ const AssignmentCard = ({ assignment, onSubmit }: { assignment: Assignment; onSu
                 whileTap={{ scale: 0.98 }}
                 onClick={onSubmit}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  submissionStatus.text === 'Graded'
+                  isGraded
                     ? 'bg-green-100 text-green-700 hover:bg-green-200'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
-                disabled={submissionStatus.text === 'Graded'}
               >
                 {submissionStatus.text === 'Pending' ? 'Submit' : 'View/Edit'}
               </motion.button>

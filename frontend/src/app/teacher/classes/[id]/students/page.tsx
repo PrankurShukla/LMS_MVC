@@ -79,14 +79,30 @@ export default function TeacherClassStudents() {
         `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/assignments`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // For each student, get their submissions
+      
+      const assignments = assignmentsResponse.data;
+      
+      // For each student, count their submissions across all assignments
       const studentData = await Promise.all(response.data.map(async (enrollment: any) => {
         try {
-          const submissionsResponse = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/classes/assignments/${classId}/submissions?studentId=${enrollment.student.id}`,
-            { headers: { Authorization: `Bearer ${token}` } }
+          // Get all student submissions for all assignments in this class
+          const submissionsPromises = assignments.map((assignment: any) => 
+            axios.get(
+              `${process.env.NEXT_PUBLIC_API_URL}/api/classes/assignments/${assignment.id}/submissions`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            )
           );
+          
+          const submissionsResponses = await Promise.all(submissionsPromises);
+          
+          // Count only submissions from this student
+          let submissionCount = 0;
+          submissionsResponses.forEach(response => {
+            const studentSubmissions = response.data.filter(
+              (submission: any) => submission.student.id === enrollment.student.id
+            );
+            submissionCount += studentSubmissions.length;
+          });
 
           return {
             id: enrollment.id,
@@ -95,7 +111,7 @@ export default function TeacherClassStudents() {
             status: enrollment.status,
             enrolledAt: enrollment.enrolledAt,
             _count: {
-              submissions: submissionsResponse.data.length || 0
+              submissions: submissionCount
             }
           };
         } catch (error) {
