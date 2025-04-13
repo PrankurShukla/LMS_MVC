@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/apiUrl';
 import DashboardHeader from '@/components/DashboardHeader';
 
 interface Enrollment {
@@ -62,7 +63,7 @@ export default function TeacherClassEnrollments() {
 
   const fetchClassDetails = async (token: string, classId: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClassDetails(response.data);
@@ -75,7 +76,7 @@ export default function TeacherClassEnrollments() {
   const fetchEnrollments = async (token: string, classId: string) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/enrollments`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}/enrollments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -91,7 +92,7 @@ export default function TeacherClassEnrollments() {
 
   const fetchPendingEnrollments = async (token: string, classId: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/enrollments/pending`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}/enrollments/pending`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPendingEnrollments(response.data);
@@ -107,7 +108,7 @@ export default function TeacherClassEnrollments() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/enrollments/${enrollmentId}/status`,
+        `${getApiUrl()}/api/classes/enrollments/${enrollmentId}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );

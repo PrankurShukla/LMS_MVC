@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface User {
   id: number;
@@ -25,6 +26,8 @@ export default function TeacherProfile() {
     newPassword: '',
     confirmPassword: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -66,42 +69,53 @@ export default function TeacherProfile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
 
-    // Validate passwords if attempting to change password
-    if (formData.newPassword) {
-      if (formData.newPassword !== formData.confirmPassword) {
-        toast.error('New passwords do not match');
+    const { name, email, currentPassword, newPassword, confirmPassword } = formData;
+
+    if (newPassword) {
+      if (newPassword !== confirmPassword) {
+        setError('New passwords do not match');
+        setIsSubmitting(false);
         return;
       }
-      if (!formData.currentPassword) {
-        toast.error('Current password is required to set a new password');
+      if (!currentPassword) {
+        setError('Current password is required to set a new password');
+        setIsSubmitting(false);
         return;
       }
     }
 
     try {
       const token = localStorage.getItem('token');
+      
       const updateData: any = {
-        name: formData.name,
-        email: formData.email
+        name: name,
+        email: email,
       };
-
-      if (formData.newPassword) {
-        updateData.currentPassword = formData.currentPassword;
-        updateData.newPassword = formData.newPassword;
+      
+      if (newPassword) {
+        updateData.currentPassword = currentPassword;
+        updateData.newPassword = newPassword;
       }
 
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/profile`,
+      const response = await axios.put(
+        `${getApiUrl()}/api/users/profile`,
         updateData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
       );
 
-      // Update local storage with new user data
-      const updatedUser = {
-        ...currentUser,
-        name: formData.name,
-        email: formData.email
+      const updatedUser: User = {
+        id: currentUser?.id || 0,
+        name: name,
+        email: email,
+        role: currentUser?.role || 'teacher'
       };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setCurrentUser(updatedUser);
@@ -109,7 +123,6 @@ export default function TeacherProfile() {
       toast.success('Profile updated successfully');
       setIsEditing(false);
       
-      // Clear password fields
       setFormData(prev => ({
         ...prev,
         currentPassword: '',
@@ -119,6 +132,8 @@ export default function TeacherProfile() {
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast.error(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

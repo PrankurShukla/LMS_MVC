@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface Assignment {
   id: number;
@@ -39,7 +40,11 @@ const formatDueDate = (dateString: string) => {
 };
 
 const getSubmissionStatus = (assignment: Assignment) => {
-  if (assignment.submission?.grade !== undefined && assignment.submission?.grade !== null) {
+  console.log(`Getting status for assignment ${assignment.id}:`, assignment);
+  console.log(`Submission details for ${assignment.id}:`, assignment.submission);
+  
+  if (assignment.submission && typeof assignment.submission.grade === 'number') {
+    console.log(`Assignment ${assignment.id} is GRADED with ${assignment.submission.grade}/100`);
     return {
       text: `Graded: ${assignment.submission.grade}/100`,
       color: 'bg-green-100 text-green-800',
@@ -85,9 +90,14 @@ const getSubmissionStatus = (assignment: Assignment) => {
 
 const AssignmentCard = ({ assignment, onSubmit }: { assignment: Assignment; onSubmit: () => void }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  console.log(`Rendering AssignmentCard for assignment ${assignment.id}`);
+  console.log(`Submission for assignment ${assignment.id}:`, assignment.submission);
+  
   const submissionStatus = getSubmissionStatus(assignment);
   const isPastDue = new Date(assignment.dueDate) < new Date();
-  const isGraded = assignment.submission?.grade !== undefined && assignment.submission?.grade !== null;
+  
+  const isGraded = assignment.submission && typeof assignment.submission.grade === 'number';
+  console.log(`Assignment ${assignment.id} isGraded:`, isGraded);
 
   return (
     <motion.div
@@ -109,7 +119,8 @@ const AssignmentCard = ({ assignment, onSubmit }: { assignment: Assignment; onSu
                 <span className="ml-2 text-red-500 font-medium">(Past due)</span>
               )}
             </div>
-            {isGraded && (
+            
+            {isGraded && assignment.submission && (
               <div className="mt-2 flex items-center">
                 <span className="font-medium text-green-700 flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,6 +128,15 @@ const AssignmentCard = ({ assignment, onSubmit }: { assignment: Assignment; onSu
                   </svg>
                   Grade: {assignment.submission.grade}/100
                 </span>
+              </div>
+            )}
+            
+            {isGraded && assignment.submission?.feedback && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Feedback: </span>
+                  {assignment.submission?.feedback}
+                </p>
               </div>
             )}
           </div>
@@ -136,54 +156,23 @@ const AssignmentCard = ({ assignment, onSubmit }: { assignment: Assignment; onSu
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                {submissionStatus.text === 'Pending' ? 'Submit' : 'View/Edit'}
+                {isGraded ? 'View Submission' : (submissionStatus.text === 'Submitted' ? 'View/Edit' : 'Submit')}
               </motion.button>
             )}
           </div>
         </div>
 
-        <motion.div
-          initial={false}
-          animate={{ height: isExpanded ? 'auto' : '80px' }}
-          transition={{ duration: 0.3 }}
-          className="overflow-hidden"
-        >
-          <div className={`prose prose-sm max-w-none ${!isExpanded ? 'line-clamp-3' : ''}`}>
-            {assignment.description}
-          </div>
-          {!isExpanded && assignment.description.length > 240 && (
-            <div className="mt-2">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsExpanded(true)}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center"
+        <div className="mt-6">
+          <div className="text-sm text-gray-800 whitespace-pre-wrap">{isExpanded ? assignment.description : `${assignment.description.slice(0, 300)}${assignment.description.length > 300 ? '...' : ''}`}</div>
+          {assignment.description.length > 300 && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
-                Read more
-                <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </motion.button>
-            </div>
+              {isExpanded ? 'Read less' : 'Read more'}
+            </button>
           )}
-        </motion.div>
-
-        {assignment.submission?.feedback && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100"
-          >
-            <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
-              <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-              </svg>
-              Teacher Feedback
-            </h4>
-            <p className="text-sm text-blue-800">{assignment.submission.feedback}</p>
-          </motion.div>
-        )}
+        </div>
       </div>
     </motion.div>
   );
@@ -206,48 +195,35 @@ const SubmitModal = ({
   onSubmit: (e: React.FormEvent) => Promise<void>;
   isSubmitting: boolean;
 }) => {
+  const isGraded = assignment.submission && typeof assignment.submission.grade === 'number';
+  
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-      >
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.2 }}
+        className="bg-white rounded-lg w-full max-w-4xl p-6 relative max-h-[90vh] overflow-auto"
         >
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  {assignment.submission ? 'Edit Submission' : 'Submit Assignment'}
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">{assignment.title}</p>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-500 transition-colors p-1 rounded-full hover:bg-gray-100"
-              >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-gray-900">{assignment.title}</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </motion.button>
+          </button>
+        </div>
+
+        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+          <p className="text-gray-700 whitespace-pre-wrap">{assignment.description}</p>
             </div>
 
-            {assignment.submission?.grade !== undefined && assignment.submission?.grade !== null ? (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200"
-              >
+        {isGraded && assignment.submission ? (
+          <div>
+            <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center mb-3">
                   <svg className="w-5 h-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -256,52 +232,63 @@ const SubmitModal = ({
                     Assignment Graded: {assignment.submission.grade}/100
                   </h3>
                 </div>
-                {assignment.submission.feedback && (
+              {assignment.submission?.feedback && (
                   <div className="mt-2">
                     <h4 className="text-sm font-medium text-green-900 mb-1">Feedback:</h4>
-                    <p className="text-sm text-green-800">{assignment.submission.feedback}</p>
+                  <p className="text-sm text-green-800">{assignment.submission?.feedback}</p>
                   </div>
                 )}
-              </motion.div>
-            ) : (
-              <form onSubmit={onSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Answer
+            </div>
+            
+            <div className="mb-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Your Submission:</h3>
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <p className="text-gray-700 whitespace-pre-wrap">{submissionContent}</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={onSubmit}>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Submission:
                   </label>
                   <textarea
-                    id="content"
                     value={submissionContent}
                     onChange={(e) => setSubmissionContent(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none shadow-sm"
-                    rows={8}
+                rows={10}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Type your answer here..."
                     required
-                    placeholder="Enter your answer here..."
                   />
                 </div>
+            
                 <div className="flex justify-end gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+              <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
                     Cancel
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+              </button>
+              <button
                     type="submit"
-                    disabled={isSubmitting || !submissionContent.trim()}
-                    className={`px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center ${
-                      isSubmitting || !submissionContent.trim() ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                   >
                     {isSubmitting ? (
                       <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                           <path
                             className="opacity-75"
                             fill="currentColor"
@@ -310,19 +297,15 @@ const SubmitModal = ({
                         </svg>
                         Submitting...
                       </>
-                    ) : assignment.submission ? (
-                      'Update Submission'
                     ) : (
-                      'Submit Assignment'
+                  'Submit'
                     )}
-                  </motion.button>
+              </button>
                 </div>
               </form>
             )}
-          </div>
-        </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </div>
   );
 };
 
@@ -405,11 +388,11 @@ export default function StudentClassAssignments() {
       console.error('Error parsing user data:', error);
       router.push('/login');
     }
-  }, [classId]);
+  }, [classId, showSubmitModal]);
 
   const fetchClassDetails = async (token: string, classId: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClassDetails(response.data);
@@ -421,7 +404,7 @@ export default function StudentClassAssignments() {
 
   const checkEnrollmentStatus = async (token: string, classId: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/student/my-enrollments`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/student/my-enrollments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -445,37 +428,64 @@ export default function StudentClassAssignments() {
   const fetchAssignments = async (token: string, classId: string) => {
     try {
       setLoading(true);
+      console.log("Fetching assignments for class ID:", classId);
+      
       // Fetch assignments for this class
-      const assignmentsResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/assignments`, {
+      const assignmentsResponse = await axios.get(`${getApiUrl()}/api/classes/${classId}/assignments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
+      console.log("Assignments response:", assignmentsResponse.data);
       const assignmentsData = assignmentsResponse.data;
       
-      // Fetch my submissions for these assignments
-      const submissionsResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/student/submissions`, {
+      // Fetch my submissions directly for these assignments
+      const submissionsPromises = assignmentsData.map((assignment: any) => 
+        axios.get(`${getApiUrl()}/api/classes/assignments/${assignment.id}/my-submission`, {
         headers: { Authorization: `Bearer ${token}` },
+        }).catch(error => {
+          console.log(`No submission found for assignment ${assignment.id}`);
+          return { data: null };
+        })
+      );
+      
+      const submissionsResponses = await Promise.all(submissionsPromises);
+      console.log("Individual submissions responses:", submissionsResponses);
+      
+      // Create a map to easily look up submissions by assignment ID
+      const submissionsMap = new Map();
+      
+      submissionsResponses.forEach((response, index) => {
+        if (response.data && response.data.id) {
+          const submission = response.data;
+          const assignmentId = assignmentsData[index].id;
+          console.log(`Found submission for assignment ${assignmentId}:`, submission);
+          console.log(`Submission grade:`, submission.grade);
+          console.log(`Grade type: ${typeof submission.grade}, Value: ${submission.grade}`);
+          submissionsMap.set(assignmentId, submission);
+        }
       });
       
-      // Map submissions to their corresponding assignments
-      const submissionsMap = new Map();
-      submissionsResponse.data.forEach((sub: any) => {
-        submissionsMap.set(sub.assignmentId, sub);
-      });
+      console.log("Final submissions map:", Array.from(submissionsMap.entries()));
       
       // Merge assignment data with submission data
       const assignmentsWithSubmissions = assignmentsData.map((assignment: any) => {
+        const submission = submissionsMap.get(assignment.id);
+        console.log(`Assignment ${assignment.id} submission:`, submission);
+        
         return {
           ...assignment,
-          submission: submissionsMap.get(assignment.id) || null
+          submission: submission || null
         };
       });
+      
+      console.log("Final assignments with submissions:", assignmentsWithSubmissions);
       
       setAssignments(assignmentsWithSubmissions);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching assignments:', error);
       toast.error('Failed to fetch assignments');
+      setError(true);
       setLoading(false);
     }
   };
@@ -488,10 +498,16 @@ export default function StudentClassAssignments() {
       return;
     }
     
+    if (selectedAssignment.submission && typeof selectedAssignment.submission.grade === 'number') {
+      toast.error('This assignment has already been graded and cannot be resubmitted');
+      setShowSubmitModal(false);
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/assignments/submit`,
+        `${getApiUrl()}/api/classes/assignments/submit`,
         { 
           assignmentId: selectedAssignment.id,
           content: submissionContent
@@ -501,8 +517,6 @@ export default function StudentClassAssignments() {
       
       toast.success('Assignment submitted successfully');
       setShowSubmitModal(false);
-      setSelectedAssignment(null);
-      setSubmissionContent('');
       
       // Refresh assignments to show the new submission
       fetchAssignments(token as string, classId);

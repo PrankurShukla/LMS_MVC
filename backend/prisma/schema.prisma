@@ -86,19 +86,20 @@ model Assignment {
 }
 
 model AssignmentSubmission {
-  id            Int         @id @default(autoincrement())
-  assignmentId  Int         @map("assignment_id")
-  studentId     Int         @map("student_id")
+  id            Int       @id @default(autoincrement())
+  assignmentId  Int
+  studentId     Int
   content       String
   grade         Int?
   feedback      String?
-  submittedAt   DateTime    @default(now()) @map("submitted_at")
-  gradedAt      DateTime?   @map("graded_at")
+  submittedAt   DateTime  @default(now())
+  gradedAt      DateTime?
   
   // Relations
-  assignment    Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student       User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
+  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student       User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  // Constraints
   @@unique([assignmentId, studentId])
   @@map("assignment_submissions")
 }

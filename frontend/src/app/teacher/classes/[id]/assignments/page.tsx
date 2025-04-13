@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import DashboardHeader from '@/components/DashboardHeader';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface Assignment {
   id: number;
@@ -158,7 +159,7 @@ export default function TeacherClassAssignments() {
 
   const fetchClassDetails = async (token: string, classId: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClassDetails(response.data);
@@ -173,14 +174,14 @@ export default function TeacherClassAssignments() {
       setLoading(true);
       // First get the total number of active students
       const studentsResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/enrollments?status=approved`,
+        `${getApiUrl()}/api/classes/${classId}/enrollments?status=approved`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const totalActiveStudents = studentsResponse.data.length;
       
       // Get assignments with their submissions
       const assignmentsResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/assignments`,
+        `${getApiUrl()}/api/classes/${classId}/assignments`,
         { 
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -190,7 +191,7 @@ export default function TeacherClassAssignments() {
       const assignmentsWithTotals = await Promise.all(assignmentsResponse.data.map(async (assignment: any) => {
         // Get submissions for this specific assignment
         const submissionsResponse = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/classes/assignments/${assignment.id}/submissions`,
+          `${getApiUrl()}/api/classes/assignments/${assignment.id}/submissions`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -253,7 +254,7 @@ export default function TeacherClassAssignments() {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/assignments`,
+        `${getApiUrl()}/api/classes/assignments`,
         { 
           classId: Number(classId),
           title: newAssignment.title,
@@ -286,7 +287,7 @@ export default function TeacherClassAssignments() {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/assignments/${assignmentId}`, {
+      await axios.delete(`${getApiUrl()}/api/classes/assignments/${assignmentId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

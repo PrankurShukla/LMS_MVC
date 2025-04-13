@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface User {
   id: number;
@@ -92,16 +93,17 @@ export default function StudentProfile() {
       }
 
       await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/profile`,
+        `${getApiUrl()}/api/users/profile`,
         updateData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       // Update local storage with new user data
-      const updatedUser = {
-        ...currentUser,
+      const updatedUser: User = {
+        id: currentUser?.id || 0,
         name: formData.name,
-        email: formData.email
+        email: formData.email,
+        role: currentUser?.role || 'student'
       };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setCurrentUser(updatedUser);

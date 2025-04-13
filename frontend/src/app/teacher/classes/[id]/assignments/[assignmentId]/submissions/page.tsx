@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import DashboardHeader from '@/components/DashboardHeader';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface Submission {
   id: number;
@@ -208,7 +209,7 @@ export default function AssignmentSubmissions() {
 
   const fetchAssignment = async (token: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/assignments/${assignmentId}`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/assignments/${assignmentId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAssignment(response.data);
@@ -221,7 +222,7 @@ export default function AssignmentSubmissions() {
   const fetchSubmissions = async (token: string) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/assignments/${assignmentId}/submissions`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/assignments/${assignmentId}/submissions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSubmissions(response.data);
@@ -255,7 +256,7 @@ export default function AssignmentSubmissions() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/submissions/${selectedSubmission.id}/grade`,
+        `${getApiUrl()}/api/classes/submissions/${selectedSubmission.id}/grade`,
         { 
           grade: gradeNum,
           feedback

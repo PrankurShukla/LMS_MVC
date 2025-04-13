@@ -5,24 +5,29 @@ import { useRouter } from 'next/navigation';
 interface DashboardHeaderProps {
   title: string;
   userName?: string;
+  onSignOut?: () => void;
 }
 
-export default function DashboardHeader({ title, userName }: DashboardHeaderProps) {
+export default function DashboardHeader({ title, userName, onSignOut }: DashboardHeaderProps) {
   const router = useRouter();
 
   const handleSignOut = () => {
-    // Show confirmation dialog
-    if (confirm('Are you sure you want to sign out?')) {
-      // Clear token and user data from localStorage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      // Add a flag to prevent browser back button navigation
-      sessionStorage.setItem('userLoggedOut', 'true');
-      
-      // Replace current history state instead of pushing a new one
-      // This makes it harder to navigate back to the protected page
-      router.replace('/login');
+    if (onSignOut) {
+      onSignOut();
+    } else {
+      // Show confirmation dialog
+      if (confirm('Are you sure you want to sign out?')) {
+        // Clear token and user data from localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Add a flag to prevent browser back button navigation
+        sessionStorage.setItem('userLoggedOut', 'true');
+        
+        // Replace current history state instead of pushing a new one
+        // This makes it harder to navigate back to the protected page
+        router.replace('/login');
+      }
     }
   };
 

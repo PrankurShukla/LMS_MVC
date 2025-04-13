@@ -12,13 +12,49 @@ export interface Class {
 export class ClassModel {
   // ---------- Class Management ----------
   static async createClass(name: string, description: string, teacherId: number) {
-    return prisma.class.create({
-      data: {
-        name,
-        description,
-        teacherId
+    try {
+      // Validate inputs
+      if (!name || typeof name !== 'string') {
+        throw new Error('Invalid class name');
       }
-    });
+      if (typeof teacherId !== 'number') {
+        throw new Error('Invalid teacher ID');
+      }
+
+      // Check if teacher exists
+      const teacher = await prisma.user.findUnique({
+        where: { id: teacherId }
+      });
+
+      if (!teacher) {
+        throw new Error('Teacher not found');
+      }
+
+      if (teacher.role !== 'teacher') {
+        throw new Error('User is not a teacher');
+      }
+
+      // Create the class
+      return prisma.class.create({
+        data: {
+          name,
+          description,
+          teacherId
+        },
+        include: {
+          teacher: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error in ClassModel.createClass:', error);
+      throw error;
+    }
   }
 
   static async updateClass(id: number, data: { name?: string; description?: string }) {
@@ -43,6 +79,38 @@ export class ClassModel {
             id: true,
             name: true,
             email: true
+          }
+        },
+        enrollments: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        },
+        courseMaterials: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        },
+        assignments: {
+          orderBy: {
+            dueDate: 'asc'
+          }
+        },
+        _count: {
+          select: {
+            enrollments: {
+              where: {
+                status: 'approved'
+              }
+            },
+            courseMaterials: true,
+            assignments: true
           }
         }
       }
@@ -99,94 +167,229 @@ export class ClassModel {
 
   // ---------- Enrollment Management ----------
   static async requestEnrollment(classId: number, studentId: number) {
-    // Check if there's an existing enrollment
-    const existingEnrollment = await prisma.enrollment.findFirst({
-      where: {
-        classId,
-        studentId
+    try {
+      // Validate inputs
+      if (!classId || typeof classId !== 'number') {
+        throw new Error('Invalid class ID');
       }
-    });
+      if (!studentId || typeof studentId !== 'number') {
+        throw new Error('Invalid student ID');
+      }
 
-    // If enrollment exists, check its status
-    if (existingEnrollment) {
-      // If already approved, return the existing enrollment
-      if (existingEnrollment.status === EnrollmentStatus.approved) {
-        return existingEnrollment;
-      }
-      
-      // If previously rejected or pending, update it to pending
-      return prisma.enrollment.update({
-        where: { id: existingEnrollment.id },
-        data: { status: EnrollmentStatus.pending }
+      // Check if class exists
+      const classExists = await prisma.class.findUnique({
+        where: { id: classId }
       });
-    }
-
-    // If no existing enrollment, create a new one
-    return prisma.enrollment.create({
-      data: {
-        classId,
-        studentId,
-        status: EnrollmentStatus.pending
+      if (!classExists) {
+        throw new Error('Class not found');
       }
-    });
+
+      // Check if student exists and is a student
+      const student = await prisma.user.findUnique({
+        where: { id: studentId }
+      });
+      if (!student) {
+        throw new Error('Student not found');
+      }
+      if (student.role !== 'student') {
+        throw new Error('User is not a student');
+      }
+
+      // Check if there's an existing enrollment
+      const existingEnrollment = await prisma.enrollment.findFirst({
+        where: {
+          classId,
+          studentId
+        }
+      });
+
+      // If enrollment exists, check its status
+      if (existingEnrollment) {
+        // If already approved, return the existing enrollment
+        if (existingEnrollment.status === 'approved') {
+          return existingEnrollment;
+        }
+        
+        // If previously rejected or pending, update it to pending
+        return prisma.enrollment.update({
+          where: { id: existingEnrollment.id },
+          data: { status: 'pending' }
+        });
+      }
+
+      // If no existing enrollment, create a new one
+      return prisma.enrollment.create({
+        data: {
+          classId,
+          studentId,
+          status: 'pending'
+        }
+      });
+    } catch (error) {
+      console.error('Error in ClassModel.requestEnrollment:', error);
+      throw error;
+    }
   }
 
   static async updateEnrollmentStatus(id: number, status: EnrollmentStatus) {
-    return prisma.enrollment.update({
-      where: { id },
-      data: { status }
-    });
+    try {
+      // Validate inputs
+      if (!id || typeof id !== 'number') {
+        throw new Error('Invalid enrollment ID');
+      }
+      if (!Object.values(EnrollmentStatus).includes(status)) {
+        throw new Error('Invalid enrollment status');
+      }
+
+      // Check if enrollment exists
+      const enrollment = await prisma.enrollment.findUnique({
+        where: { id }
+      });
+      if (!enrollment) {
+        throw new Error('Enrollment not found');
+      }
+
+      return prisma.enrollment.update({
+        where: { id },
+        data: { status }
+      });
+    } catch (error) {
+      console.error('Error in ClassModel.updateEnrollmentStatus:', error);
+      throw error;
+    }
   }
 
   static async getEnrollmentsByClassId(classId: number) {
-    return prisma.enrollment.findMany({
-      where: { classId },
-      include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
+    try {
+      // Validate input
+      if (!classId || typeof classId !== 'number') {
+        throw new Error('Invalid class ID');
       }
-    });
-  }
 
-  static async getEnrollmentsByStudentId(studentId: number) {
-    return prisma.enrollment.findMany({
-      where: { studentId },
-      include: {
-        class: {
-          include: {
-            teacher: {
-              select: {
-                id: true,
-                name: true
-              }
+      // Check if class exists
+      const classExists = await prisma.class.findUnique({
+        where: { id: classId }
+      });
+      if (!classExists) {
+        throw new Error('Class not found');
+      }
+
+      return prisma.enrollment.findMany({
+        where: { classId },
+        include: {
+          student: {
+            select: {
+              id: true,
+              name: true,
+              email: true
             }
           }
         }
+      });
+    } catch (error) {
+      console.error('Error in ClassModel.getEnrollmentsByClassId:', error);
+      throw error;
+    }
+  }
+
+  static async getEnrollmentsByStudentId(studentId: number) {
+    try {
+      // Validate input
+      if (!studentId || typeof studentId !== 'number') {
+        throw new Error('Invalid student ID');
       }
-    });
+
+      // Check if student exists
+      const student = await prisma.user.findUnique({
+        where: { id: studentId }
+      });
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      return prisma.enrollment.findMany({
+        where: { 
+          studentId,
+          status: 'approved'  // Only return approved enrollments
+        },
+        include: {
+          class: {
+            include: {
+              teacher: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true
+                }
+              },
+              courseMaterials: {
+                orderBy: {
+                  createdAt: 'desc'
+                }
+              },
+              assignments: {
+                orderBy: {
+                  dueDate: 'asc'
+                }
+              },
+              _count: {
+                select: {
+                  enrollments: {
+                    where: {
+                      status: 'approved'
+                    }
+                  },
+                  courseMaterials: true,
+                  assignments: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: {
+          enrolledAt: 'desc'
+        }
+      });
+    } catch (error) {
+      console.error('Error in ClassModel.getEnrollmentsByStudentId:', error);
+      throw error;
+    }
   }
 
   static async getPendingEnrollmentsByClassId(classId: number) {
-    return prisma.enrollment.findMany({
-      where: {
-        classId,
-        status: EnrollmentStatus.pending
-      },
-      include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true
+    try {
+      // Validate input
+      if (!classId || typeof classId !== 'number') {
+        throw new Error('Invalid class ID');
+      }
+
+      // Check if class exists
+      const classExists = await prisma.class.findUnique({
+        where: { id: classId }
+      });
+      if (!classExists) {
+        throw new Error('Class not found');
+      }
+
+      return prisma.enrollment.findMany({
+        where: {
+          classId,
+          status: 'pending'
+        },
+        include: {
+          student: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
           }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Error in ClassModel.getPendingEnrollmentsByClassId:', error);
+      throw error;
+    }
   }
 
   // ---------- Course Material Management ----------
@@ -320,22 +523,85 @@ export class ClassModel {
   }
 
   static async getSubmissionsByStudentId(studentId: number) {
-    return prisma.assignmentSubmission.findMany({
+    console.log(`Getting submissions for student ID: ${studentId}`);
+    const submissions = await prisma.assignmentSubmission.findMany({
       where: { studentId },
       include: {
-        assignment: true
+        assignment: {
+          include: {
+            class: {
+              include: {
+                teacher: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        submittedAt: 'desc'
       }
     });
+    
+    console.log(`Found ${submissions.length} submissions for student ID: ${studentId}`);
+    submissions.forEach(sub => {
+      console.log(`Submission ID: ${sub.id}, Assignment ID: ${sub.assignmentId}, Grade: ${sub.grade}, Feedback: ${sub.feedback?.substring(0, 20)}`);
+    });
+    
+    return submissions;
   }
 
   static async getSubmission(assignmentId: number, studentId: number) {
-    return prisma.assignmentSubmission.findUnique({
+    console.log(`Looking for submission for assignment ${assignmentId} by student ${studentId}`);
+    
+    // First check if the assignment exists
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId }
+    });
+    
+    if (!assignment) {
+      console.log(`Assignment ${assignmentId} not found`);
+      return null;
+    }
+    
+    // Check if student is enrolled in the class
+    const enrollment = await prisma.enrollment.findFirst({
       where: {
-        assignmentId_studentId: {
-          assignmentId,
-          studentId
-        }
+        classId: assignment.classId,
+        studentId,
+        status: 'approved'
       }
     });
+    
+    if (!enrollment) {
+      console.log(`Student ${studentId} is not enrolled in class ${assignment.classId}`);
+      return null;
+    }
+    
+    // Find the submission
+    const submission = await prisma.assignmentSubmission.findFirst({
+      where: {
+        assignmentId,
+        studentId
+      }
+    });
+    
+    if (submission) {
+      console.log(`Submission found for assignment ${assignmentId}:`, {
+        id: submission.id,
+        grade: submission.grade,
+        hasGrade: submission.grade !== null,
+        feedback: submission.feedback ? submission.feedback.substring(0, 20) + '...' : 'None'
+      });
+    } else {
+      console.log(`No submission found for assignment ${assignmentId}`);
+    }
+    
+    return submission;
   }
 } 

@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import DashboardHeader from '@/components/DashboardHeader';
 import { format } from 'date-fns';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface Material {
   id: number;
@@ -213,7 +214,7 @@ export default function TeacherClassMaterials() {
 
   const fetchClassDetails = async (token: string, classId: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClassDetails(response.data);
@@ -226,7 +227,7 @@ export default function TeacherClassMaterials() {
   const fetchMaterials = async (token: string, classId: string) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/materials`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}/materials`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMaterials(response.data);
@@ -249,7 +250,7 @@ export default function TeacherClassMaterials() {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/materials`,
+        `${getApiUrl()}/api/classes/materials`,
         { 
           classId: Number(classId),
           title: newMaterial.title,
@@ -281,7 +282,7 @@ export default function TeacherClassMaterials() {
     try {
       setIsDeleting(materialId);
       const token = localStorage.getItem('token');
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/materials/${materialId}`, {
+      await axios.delete(`${getApiUrl()}/api/classes/materials/${materialId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

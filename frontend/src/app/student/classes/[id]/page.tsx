@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import DashboardHeader from '@/components/DashboardHeader';
 import { motion } from 'framer-motion';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface ClassDetails {
   id: number;
@@ -110,7 +111,7 @@ export default function StudentClassDetail() {
   const fetchClassDetails = async (token: string, classId: string) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClassDetails(response.data);
@@ -124,7 +125,7 @@ export default function StudentClassDetail() {
 
   const checkEnrollmentStatus = async (token: string, classId: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/student/my-enrollments`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/student/my-enrollments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       

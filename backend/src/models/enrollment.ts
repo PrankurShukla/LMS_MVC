@@ -9,34 +9,40 @@ export interface ClassEnrollment {
 
 export class ClassEnrollmentModel {
   static async enrollStudent(classId: number, studentId: number): Promise<ClassEnrollment> {
-    return prisma.classEnrollment.create({
+    return prisma.enrollment.create({
       data: {
         classId,
         studentId,
+        status: 'approved',
       },
     });
   }
 
   static async getStudentEnrollments(studentId: number) {
-    return prisma.classEnrollment.findMany({
-      where: { studentId },
+    return prisma.enrollment.findMany({
+      where: { 
+        studentId,
+        status: 'approved'
+      },
       include: {
         class: {
           include: {
             teacher: {
               select: {
                 id: true,
+                name: true,
                 email: true,
-              },
+              }
             },
-          },
-        },
-      },
+            assignments: true
+          }
+        }
+      }
     });
   }
 
   static async getClassEnrollments(classId: number) {
-    return prisma.classEnrollment.findMany({
+    return prisma.enrollment.findMany({
       where: { classId },
       include: {
         student: {
@@ -50,7 +56,7 @@ export class ClassEnrollmentModel {
   }
 
   static async unenrollStudent(classId: number, studentId: number) {
-    return prisma.classEnrollment.delete({
+    return prisma.enrollment.delete({
       where: {
         classId_studentId: {
           classId,
@@ -61,7 +67,7 @@ export class ClassEnrollmentModel {
   }
 
   static async isEnrolled(classId: number, studentId: number): Promise<boolean> {
-    const enrollment = await prisma.classEnrollment.findUnique({
+    const enrollment = await prisma.enrollment.findUnique({
       where: {
         classId_studentId: {
           classId,
@@ -69,6 +75,7 @@ export class ClassEnrollmentModel {
         },
       },
     });
+    
     return !!enrollment;
   }
 } 

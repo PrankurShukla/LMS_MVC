@@ -13,6 +13,11 @@ router.post('/login', (req, res) => AuthController.login(req, res));
 // Protected routes
 router.get('/me', authenticateToken, async (req, res) => {
   try {
+    // Check if user exists in the request
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
     // Fetch complete user data from the database
     const user = await UserModel.findById(req.user.userId);
     

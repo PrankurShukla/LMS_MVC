@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import DashboardHeader from '@/components/DashboardHeader';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface ClassDetails {
   id: number;
@@ -64,7 +65,8 @@ export default function TeacherClassDetail() {
   const fetchClassDetails = async (token: string, classId: string) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}`, {
+      console.log('Attempting to fetch class details from:', `${getApiUrl()}/api/classes/${classId}`);
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClassDetails(response.data);
@@ -78,7 +80,8 @@ export default function TeacherClassDetail() {
 
   const fetchEnrollmentStats = async (token: string, classId: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/enrollments`, {
+      console.log('Attempting to fetch enrollment stats from:', `${getApiUrl()}/api/classes/${classId}/enrollments`);
+      const response = await axios.get(`${getApiUrl()}/api/classes/${classId}/enrollments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       

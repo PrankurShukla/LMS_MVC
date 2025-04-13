@@ -1,8 +1,10 @@
 'use client';
 
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/apiUrl';
 
 export default function Login() {
   const router = useRouter();
@@ -46,7 +48,7 @@ export default function Login() {
       try {
         const user = JSON.parse(userStr);
         // Verify the token is still valid
-        fetch('http://localhost:5000/api/auth/me', {
+        fetch(`${getApiUrl()}/api/auth/me`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -83,7 +85,7 @@ export default function Login() {
     e.preventDefault();
     setError('');
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${getApiUrl()}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

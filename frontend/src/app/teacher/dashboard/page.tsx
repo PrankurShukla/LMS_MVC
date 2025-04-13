@@ -6,6 +6,7 @@ import DashboardHeader from '@/components/DashboardHeader';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface Class {
   id: number;
@@ -86,7 +87,7 @@ export default function TeacherDashboard() {
   const fetchTeacherClasses = async (token: string) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/teacher/my-classes`, {
+      const response = await axios.get(`${getApiUrl()}/api/classes/teacher/my-classes`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClasses(response.data);
@@ -105,32 +106,41 @@ export default function TeacherDashboard() {
     try {
       if (classesList.length === 0) return;
       
-      const pendingEnrollmentsPromises = classesList.map(cls => 
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/${cls.id}/enrollments/pending`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      );
-
-      const responses = await Promise.all(pendingEnrollmentsPromises);
-      const allPendingEnrollments = responses.flatMap((response, index) => {
-        // Add classId to each enrollment for reference
-        return response.data.map((enrollment: any) => ({
-          ...enrollment,
-          classId: classesList[index].id
-        }));
-      });
+      const allPendingEnrollments = [];
+      
+      for (const cls of classesList) {
+        try {
+          const response = await axios.get(`${getApiUrl()}/api/classes/${cls.id}/enrollments/pending`, {
+            headers: { Authorization: `Bearer ${token}` },
+            // Set a timeout to avoid hanging requests
+            timeout: 5000
+          });
+          
+          // Add classId to each enrollment for reference
+          const enrollmentsWithClassId = response.data.map((enrollment: any) => ({
+            ...enrollment,
+            classId: cls.id
+          }));
+          
+          allPendingEnrollments.push(...enrollmentsWithClassId);
+        } catch (error) {
+          console.error(`Error fetching pending enrollments for class ${cls.id}:`, error);
+          // Continue with other classes even if one fails
+        }
+      }
       
       setPendingEnrollments(allPendingEnrollments);
     } catch (error) {
-      console.error('Error fetching pending enrollments:', error);
-      toast.error('Failed to fetch pending enrollments');
+      console.error('Error in fetchPendingEnrollments:', error);
+      // We won't show an error toast here because it's not critical for user experience
+      // toast.error('Some enrollments could not be loaded');
     }
   };
 
   const fetchDashboardStats = async (token: string) => {
     try {
       // Get all classes first
-      const classesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/teacher/my-classes`, {
+      const classesResponse = await axios.get(`${getApiUrl()}/api/classes/teacher/my-classes`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -142,23 +152,52 @@ export default function TeacherDashboard() {
 
       // For each class, get enrollment details
       for (const classItem of classesResponse.data) {
-        const enrollmentsResponse = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classItem.id}/enrollments`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        try {
+          // Fetch enrolled students (both approved and rejected)
+          const enrollmentsResponse = await axios.get(
+            `${getApiUrl()}/api/classes/${classItem.id}/enrollments`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-        const enrollments = enrollmentsResponse.data;
-        totalStudents += enrollments.length;
-        activeStudents += enrollments.filter((e: any) => e.status === 'approved').length;
-        inactiveStudents += enrollments.filter((e: any) => e.status === 'rejected').length;
-        pendingEnrollments += enrollments.filter((e: any) => e.status === 'pending').length;
-        
-        // Add student IDs to the set to count unique students
-        enrollments.forEach((enrollment: any) => {
-          if (enrollment.student && enrollment.student.id) {
-            uniqueStudentIds.add(enrollment.student.id);
+          if (enrollmentsResponse.data && Array.isArray(enrollmentsResponse.data)) {
+            const enrollments = enrollmentsResponse.data;
+            totalStudents += enrollments.length;
+            activeStudents += enrollments.filter((e: any) => e.status === 'approved').length;
+            inactiveStudents += enrollments.filter((e: any) => e.status === 'rejected').length;
+            
+            // Add student IDs to the set to count unique students
+            enrollments.forEach((enrollment: any) => {
+              if (enrollment.student && enrollment.student.id) {
+                uniqueStudentIds.add(enrollment.student.id);
+              }
+            });
           }
-        });
+
+          // Fetch pending enrollment requests separately
+          try {
+            const pendingResponse = await axios.get(
+              `${getApiUrl()}/api/classes/${classItem.id}/enrollments/pending`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            if (pendingResponse.data && Array.isArray(pendingResponse.data)) {
+              pendingEnrollments += pendingResponse.data.length;
+              
+              // Also add pending students to the unique set
+              pendingResponse.data.forEach((enrollment: any) => {
+                if (enrollment.student && enrollment.student.id) {
+                  uniqueStudentIds.add(enrollment.student.id);
+                }
+              });
+            }
+          } catch (pendingError) {
+            console.error(`Error fetching pending enrollments for class ${classItem.id}:`, pendingError);
+            // Continue even if pending enrollments fail
+          }
+        } catch (error) {
+          console.error(`Error fetching enrollments for class ${classItem.id}:`, error);
+          // Continue with other classes even if one fails
+        }
       }
 
       setStats({
@@ -169,9 +208,12 @@ export default function TeacherDashboard() {
         pendingEnrollments,
         uniqueStudents: uniqueStudentIds.size
       });
+      
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
-      toast.error('Failed to fetch dashboard statistics');
+      toast.error('Failed to load dashboard statistics');
+      setLoading(false);
     }
   };
 
@@ -180,7 +222,7 @@ export default function TeacherDashboard() {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes`,
+        `${getApiUrl()}/api/classes`,
         newClass,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -204,7 +246,7 @@ export default function TeacherDashboard() {
       }
 
       await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/enrollments/${enrollmentId}/status`,
+        `${getApiUrl()}/api/classes/enrollments/${enrollmentId}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -342,75 +384,94 @@ export default function TeacherDashboard() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-gray-100">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gray-100 rounded-lg">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
+          {/* Display error message if stats failed to load */}
+          {loading ? (
+            <>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-gray-200"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                      <div className="h-6 bg-gray-200 rounded w-12"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gray-100 rounded-lg">
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Total Classes</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{stats.totalClasses}</h3>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Classes</p>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.totalClasses}</h3>
+              
+              <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-green-100">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-green-600">Active Students</p>
+                    <h3 className="text-2xl font-bold text-green-700">{stats.activeStudents}</h3>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-green-100">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+              
+              <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-red-100">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-red-100 rounded-lg">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-red-600">Inactive Students</p>
+                    <h3 className="text-2xl font-bold text-red-700">{stats.inactiveStudents}</h3>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-green-600">Active Students</p>
-                <h3 className="text-2xl font-bold text-green-700">{stats.activeStudents}</h3>
+              
+              <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-yellow-100">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-yellow-100 rounded-lg">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-yellow-600">Pending Enrollments</p>
+                    <h3 className="text-2xl font-bold text-yellow-700">{stats.pendingEnrollments}</h3>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-red-100">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-red-600">Inactive Students</p>
-                <h3 className="text-2xl font-bold text-red-700">{stats.inactiveStudents}</h3>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-yellow-100">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-yellow-600">Pending Enrollments</p>
-                <h3 className="text-2xl font-bold text-yellow-700">{stats.pendingEnrollments}</h3>
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-blue-100">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+              <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-blue-100">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-600">Unique Students</p>
+                    <h3 className="text-2xl font-bold text-blue-700">{stats.uniqueStudents}</h3>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-blue-600">Unique Students</p>
-                <h3 className="text-2xl font-bold text-blue-700">{stats.uniqueStudents}</h3>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         {/* My Classes Section */}
@@ -591,6 +652,7 @@ export default function TeacherDashboard() {
                   </svg>
                 </button>
               </div>
+              
               <form onSubmit={handleCreateClass} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="name">
@@ -618,7 +680,8 @@ export default function TeacherDashboard() {
                     required
                   />
                 </div>
-                <div className="flex justify-end gap-2 pt-4">
+                
+                <div className="flex justify-end gap-3 mt-6">
                   <button
                     type="button"
                     onClick={() => setShowNewClassModal(false)}

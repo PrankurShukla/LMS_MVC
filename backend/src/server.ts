@@ -6,16 +6,17 @@ import adminRoutes from './routes/admin.routes';
 import classRoutes from './routes/class.routes';
 import userRoutes from './routes/user.routes';
 import morgan from 'morgan';
-import app from './app';
+import { authenticateToken, authorizeAdmin } from './middleware/auth.middleware';
 
 dotenv.config();
 
+const app = express();
 const port = process.env.PORT || 5000;
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: true, // Allow all origins in development
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 };
@@ -36,11 +37,13 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
 });
 
-// Routes
+// Public routes
 app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/classes', classRoutes);
-app.use('/api/users', userRoutes);
+
+// Protected routes
+app.use('/api/admin', authenticateToken, authorizeAdmin, adminRoutes);
+app.use('/api/classes', authenticateToken, classRoutes);
+app.use('/api/users', authenticateToken, userRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

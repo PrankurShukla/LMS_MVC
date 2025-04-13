@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import DashboardHeader from '@/components/DashboardHeader';
+import { getApiUrl } from '@/lib/apiUrl';
 
 interface Student {
   id: number;
@@ -70,13 +71,13 @@ export default function TeacherClassStudents() {
     try {
       // Get all enrollments without status filter
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/enrollments`,
+        `${getApiUrl()}/api/classes/${classId}/enrollments`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       // Get all assignments for this class
       const assignmentsResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/${classId}/assignments`,
+        `${getApiUrl()}/api/classes/${classId}/assignments`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -88,7 +89,7 @@ export default function TeacherClassStudents() {
           // Get all student submissions for all assignments in this class
           const submissionsPromises = assignments.map((assignment: any) => 
             axios.get(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/classes/assignments/${assignment.id}/submissions`,
+              `${getApiUrl()}/api/classes/assignments/${assignment.id}/submissions`,
               { headers: { Authorization: `Bearer ${token}` } }
             )
           );
@@ -142,7 +143,7 @@ export default function TeacherClassStudents() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/enrollments/${studentId}/status`,
+        `${getApiUrl()}/api/classes/enrollments/${studentId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -180,7 +181,7 @@ export default function TeacherClassStudents() {
       await Promise.all(
         studentIds.map(id =>
           axios.put(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/classes/enrollments/${id}/status`,
+            `${getApiUrl()}/api/classes/enrollments/${id}/status`,
             { status: newStatus },
             { headers: { Authorization: `Bearer ${token}` } }
           )

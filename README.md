@@ -1,6 +1,17 @@
 # Learning Management System (LMS)
 
-A modern Learning Management System built with Next.js and Express.js.
+A modern Learning Management System built with Next.js and Express.js for managing educational content, assignments, and student enrollments.
+
+## Table of Contents
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Setup Options](#setup-options)
+- [Local Development Setup](#local-development-setup)
+- [Docker Setup](#docker-setup)
+- [Usage Guide](#usage-guide)
+- [Troubleshooting](#troubleshooting)
+- [API Documentation](#api-documentation)
 
 ## Features
 
@@ -8,7 +19,7 @@ A modern Learning Management System built with Next.js and Express.js.
 - Multi-role support (Admin, Teacher, Student)
 - Secure authentication with JWT
 - User approval system for new registrations
-- Profile management
+- Profile management for all users
 
 ### Teacher Features
 - Create and manage classes
@@ -17,97 +28,105 @@ A modern Learning Management System built with Next.js and Express.js.
 - Student enrollment management
   - Approve/Reject enrollment requests
   - View active and inactive students
-  - Manage student status (activate/deactivate)
-- Dashboard with statistics
-  - Total classes overview
-  - Active students count
-  - Inactive students count
-  - Pending enrollment requests
+  - Manage student status
 
 ### Student Features
 - Enroll in classes
 - View course materials
 - Submit assignments
 - Track grades and progress
-- View enrollment status
 
 ### Admin Features
 - User management
 - Approve/reject user registrations
 - View system statistics
-- Monitor user activities
 
 ## Tech Stack
 
 ### Backend
 - Node.js (v18+)
-- Express.js (v4.18.2)
-- PostgreSQL (v14+)
-- Prisma ORM (v5.7.1)
-- TypeScript (v5.3.3)
-- JWT for authentication
+- Express.js
+- PostgreSQL
+- Prisma ORM
+- TypeScript
+- JWT Authentication
 
 ### Frontend
-- Next.js (v14.0.4)
-- React (v18.2.0)
-- TypeScript (v5.3.3)
-- Tailwind CSS (v3.3.0)
-- Axios (v1.6.2)
+- Next.js 14
+- React 18
+- TypeScript
+- Tailwind CSS
+- Framer Motion for animations
+- Axios for API requests
 
-## Prerequisites
+## Project Structure
 
-Before you begin, ensure you have the following installed:
-
-1. **Node.js (v18 or higher)**
-   - Download from [Node.js website](https://nodejs.org/)
-   - Verify installation:
-     ```bash
-     node --version
-     npm --version
-     ```
-
-2. **PostgreSQL (v14 or higher)**
-   - Download from [PostgreSQL website](https://www.postgresql.org/download/)
-   - Remember your PostgreSQL password during installation
-   - Verify installation:
-     ```bash
-     psql --version
-     ```
-
-3. **Git**
-   - Download from [Git website](https://git-scm.com/downloads)
-   - Verify installation:
-     ```bash
-     git --version
-     ```
-
-## Detailed Setup Guide
-
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd lms
+```
+├── backend/                 # Backend API server
+│   ├── dist/                # Compiled TypeScript
+│   ├── node_modules/        # Dependencies
+│   ├── prisma/              # Database models and migrations
+│   ├── src/                 # Source code
+│   │   ├── controllers/     # Request handlers
+│   │   ├── middleware/      # Express middleware
+│   │   ├── models/          # Data models
+│   │   ├── routes/          # API routes
+│   │   ├── utils/           # Utility functions
+│   │   └── server.ts        # Main server file
+│   ├── .env                 # Environment variables
+│   ├── Dockerfile           # Docker configuration
+│   ├── package.json         # Dependencies and scripts
+│   └── tsconfig.json        # TypeScript configuration
+│
+├── frontend/                # Next.js frontend
+│   ├── .next/               # Next.js build output
+│   ├── node_modules/        # Dependencies
+│   ├── public/              # Static assets
+│   ├── src/                 # Source code
+│   │   ├── app/             # Next.js App Router
+│   │   ├── components/      # React components
+│   │   ├── lib/             # Utility functions
+│   │   └── styles/          # CSS styles
+│   ├── .env.local           # Environment variables
+│   ├── Dockerfile           # Docker configuration
+│   ├── next.config.js       # Next.js configuration
+│   ├── package.json         # Dependencies and scripts
+│   ├── tailwind.config.js   # Tailwind CSS configuration
+│   └── tsconfig.json        # TypeScript configuration
+│
+├── docker-compose.yml       # Docker Compose configuration
+├── docker-run.sh            # Script to run Docker (Linux/Mac)
+├── docker-run.ps1           # Script to run Docker (Windows)
+└── DOCKER-README.md         # Docker-specific instructions
 ```
 
-### 2. Database Setup
-1. Open PostgreSQL command prompt:
-   ```bash
-   psql -U postgres
-   ```
-2. Create the database:
+## Setup Options
+
+You can set up the LMS application in two ways:
+1. **Local Development Setup** - Best for development, with separate backend and frontend servers
+2. **Docker Setup** - Recommended for testing or production, runs the entire stack in containers
+
+## Local Development Setup
+
+### Prerequisites
+
+1. **Node.js 18+** - [Download](https://nodejs.org/)
+2. **PostgreSQL 14+** - [Download](https://www.postgresql.org/download/)
+3. **Git** - [Download](https://git-scm.com/downloads)
+
+### Step 1: Clone the Repository
+```bash
+git clone <repository-url>
+cd LMS_MVP
+```
+
+### Step 2: Database Setup
+1. Create a PostgreSQL database:
    ```sql
    CREATE DATABASE lms;
    ```
-3. Verify the database was created:
-   ```sql
-   \l
-   ```
-4. Exit PostgreSQL:
-   ```sql
-   \q
-   ```
 
-### 3. Backend Setup
+### Step 3: Backend Setup
 1. Navigate to backend directory:
    ```bash
    cd backend
@@ -118,19 +137,14 @@ cd lms
    npm install
    ```
 
-3. Create `.env` file:
-   ```bash
-   cp .env.example .env
+3. Create a `.env` file with the following content:
    ```
-   
-4. Configure backend `.env` file with the following content:
-   ```env
    # Server Configuration
    PORT=5000
    NODE_ENV=development
 
    # Database Configuration
-   DATABASE_URL="postgresql://postgres:your_password@localhost:5432/lms"
+   DATABASE_URL="postgresql://postgres:your_password@localhost:5432/lms?schema=public"
 
    # JWT Configuration
    JWT_SECRET=your_secret_key_here
@@ -140,20 +154,20 @@ cd lms
    ```
    Replace `your_password` with your PostgreSQL password.
 
-5. Initialize the database:
+4. Set up the database:
    ```bash
-   # Generate Prisma client
    npx prisma generate
-
-   # Run database migrations
    npx prisma migrate dev
-
-   # Seed the database with initial data
    npx prisma db seed
    ```
 
-### 4. Frontend Setup
-1. Navigate to frontend directory:
+5. Start the backend server:
+   ```bash
+   npm run dev
+   ```
+
+### Step 4: Frontend Setup
+1. In a new terminal, navigate to frontend directory:
    ```bash
    cd ../frontend
    ```
@@ -163,34 +177,37 @@ cd lms
    npm install
    ```
 
-3. Create `.env.local` file:
-   ```bash
-   cp .env.example .env.local
+3. Create a `.env.local` file:
    ```
-
-4. Configure frontend `.env.local` file:
-   ```env
    NEXT_PUBLIC_API_URL=http://localhost:5000
    ```
 
-### 5. Start the Application
-
-1. Start the backend server (in backend directory):
+4. Start the frontend server:
    ```bash
    npm run dev
    ```
 
-2. In a new terminal, start the frontend server (in frontend directory):
-   ```bash
-   npm run dev
-   ```
-
-3. Access the application:
+5. Access the application:
    - Frontend: http://localhost:3000
-   - Backend: http://localhost:5000
+   - Backend API: http://localhost:5000
 
-### 6. Default Login Credentials
-After running the seed script, you can log in with these accounts:
+## Docker Setup
+
+For Docker-based deployment, see [DOCKER-README.md](./DOCKER-README.md) for detailed instructions.
+
+Quick start:
+```bash
+# Windows
+.\docker-run.ps1
+
+# Linux/Mac
+./docker-run.sh
+```
+
+## Usage Guide
+
+### Default Login Credentials
+After running the database seed script, you can log in with these accounts:
 
 ```
 Admin:
@@ -206,142 +223,109 @@ Student:
 - Password: student123
 ```
 
+### Admin Tasks
+1. Log in with admin credentials
+2. Approve new user registrations
+3. Monitor user activities
+
+### Teacher Tasks
+1. Create new classes from the dashboard
+2. Add course materials and assignments
+3. Manage student enrollments
+4. Grade student submissions
+
+### Student Tasks
+1. Browse available classes
+2. Request enrollment in classes
+3. Access course materials
+4. Submit assignments
+5. View grades and feedback
+
 ## Troubleshooting
 
-### Common Issues and Solutions
+### Common Issues
 
 1. **Database Connection Error**
    - Verify PostgreSQL is running
-   - Check if database name is 'lms'
-   - Ensure password in `.env` matches your PostgreSQL password
+   - Check your database credentials in `.env`
    - Try connecting manually: `psql -U postgres -d lms`
 
 2. **Port Already in Use**
-   - Backend (5000): Check if another process is using port 5000
-   - Frontend (3000): Next.js will automatically use next available port
+   - Check if ports 5000 (backend) or 3000 (frontend) are already in use
+   - Change the port in the respective configuration
 
 3. **Prisma Issues**
    - Run `npx prisma generate` after any schema changes
    - For migration issues: `npx prisma migrate reset`
 
-4. **Module Not Found Errors**
-   - Delete `node_modules` and `package-lock.json`
-   - Run `npm install` again
+4. **Docker Issues**
+   - See the [DOCKER-README.md](./DOCKER-README.md) troubleshooting section
 
-## API Routes
+## API Documentation
 
-### Authentication Routes
-```
-POST /api/auth/register - Register a new user
-POST /api/auth/login - User login
-GET /api/auth/me - Get current user details
-```
+### Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get current user details
 
-### Admin Routes
-```
-GET /api/admin/users - Get all users
-GET /api/admin/pending-users - Get users pending approval
-PUT /api/admin/users/:id/status - Update user approval status
-DELETE /api/admin/users/:id - Delete a user
-```
+### Admin Endpoints
+- `GET /api/admin/pending-users` - Get all pending users awaiting approval
+- `GET /api/admin/users` - Get all users
+- `PUT /api/admin/users/:id/status` - Update user approval status
+- `DELETE /api/admin/users/:id` - Delete a user
 
-### Class Management Routes
-```
-POST /api/classes - Create a new class
-GET /api/classes - Get all classes
-GET /api/classes/:id - Get class details
-PUT /api/classes/:id - Update class details
-DELETE /api/classes/:id - Delete a class
-GET /api/classes/teacher/my-classes - Get teacher's classes
-```
+### User Management
+- `PUT /api/users/profile` - Update user profile
 
-### Enrollment Management Routes
-```
-POST /api/classes/enroll - Request enrollment in a class
-GET /api/classes/:classId/enrollments - Get all enrollments for a class
-GET /api/classes/:classId/enrollments/pending - Get pending enrollments
-PUT /api/classes/enrollments/:id/status - Update enrollment status (approve/reject)
-GET /api/classes/student/my-enrollments - Get student's enrollments
-```
+### Class Management
+- `GET /api/classes` - Get all available classes
+- `POST /api/classes` - Create a new class (teacher only)
+- `GET /api/classes/:id` - Get details for a specific class
+- `PUT /api/classes/:id` - Update a class (teacher only)
+- `DELETE /api/classes/:id` - Delete a class (teacher only)
 
-### Course Material Routes
-```
-POST /api/classes/materials - Upload course material
-GET /api/classes/:classId/materials - Get class materials
-PUT /api/classes/materials/:id - Update material
-DELETE /api/classes/materials/:id - Delete material
-```
+### Teacher Specific Endpoints
+- `GET /api/classes/teacher/my-classes` - Get all classes taught by the logged-in teacher
+- `GET /api/classes/:classId/enrollments` - Get all enrollments for a specific class
+- `GET /api/classes/:classId/enrollments/pending` - Get pending enrollment requests for a class
+- `PUT /api/classes/enrollments/:id/status` - Approve or reject an enrollment request
+- `PUT /api/classes/submissions/:id/grade` - Grade a student's assignment submission
+- `GET /api/classes/assignments/:assignmentId/submissions` - Get all submissions for a specific assignment
 
-### Assignment Routes
-```
-POST /api/classes/assignments - Create assignment
-GET /api/classes/:classId/assignments - Get class assignments
-GET /api/classes/assignments/:id - Get assignment details
-PUT /api/classes/assignments/:id - Update assignment
-DELETE /api/classes/assignments/:id - Delete assignment
-```
+### Student Specific Endpoints
+- `GET /api/classes/student/my-enrollments` - Get all classes the student is enrolled in
+- `GET /api/classes/student/submissions` - Get all assignment submissions made by the student
+- `POST /api/classes/enroll` - Request enrollment in a class
+- `POST /api/classes/assignments/submit` - Submit an assignment
+- `GET /api/classes/assignments/:assignmentId/my-submission` - Get student's own submission for a specific assignment
 
-### Assignment Submission Routes
-```
-POST /api/classes/assignments/submit - Submit assignment
-GET /api/classes/assignments/:assignmentId/submissions - Get all submissions
-GET /api/classes/assignments/:assignmentId/my-submission - Get student's submission
-PUT /api/classes/submissions/:id/grade - Grade submission
-GET /api/classes/student/submissions - Get student's submissions
-```
+### Course Materials
+- `GET /api/classes/:classId/materials` - Get all materials for a class
+- `POST /api/classes/materials` - Add a course material (teacher only)
+- `PUT /api/classes/materials/:id` - Update a course material (teacher only)
+- `DELETE /api/classes/materials/:id` - Delete a course material (teacher only)
 
-### Student Management Routes
-```
-GET /api/classes/:classId/students - Get all students in a class
-GET /api/classes/:classId/students/active - Get active students
-GET /api/classes/:classId/students/inactive - Get inactive students
-PUT /api/classes/students/:id/status - Update student status
-```
+### Assignments
+- `GET /api/classes/:classId/assignments` - Get all assignments for a class
+- `GET /api/classes/assignments/:id` - Get details for a specific assignment
+- `POST /api/classes/assignments` - Create an assignment (teacher only)
+- `PUT /api/classes/assignments/:id` - Update an assignment (teacher only)
+- `DELETE /api/classes/assignments/:id` - Delete an assignment (teacher only)
 
-### User Management Routes
-```
-GET /api/users/profile - Get user profile
-PUT /api/users/profile - Update user profile
-PUT /api/users/password - Change password
-```
+### Utility
+- `GET /api/health` - Health check endpoint (useful for Docker)
+- `GET /` - Welcome message
 
-### Dashboard Routes
-```
-GET /api/dashboard/stats - Get dashboard statistics
-GET /api/dashboard/recent-activities - Get recent activities
-```
+### Dashboard Statistics
+**Note**: The dashboard statistics shown in the teacher and admin dashboards are calculated on the frontend by aggregating data from multiple API calls to the existing endpoints listed above. There are no specific backend endpoints dedicated to dashboard statistics.
 
-## Project Structure
-```
-lmsbase/
-├── backend/
-│   ├── prisma/
-│   │   ├── schema.prisma    # Database schema
-│   │   ├── migrations/      # Database migrations
-│   │   └── seed.ts         # Seed data
-│   ├── src/
-│   │   ├── controllers/    # Request handlers
-│   │   ├── middleware/     # Custom middleware
-│   │   ├── routes/        # API routes
-│   │   ├── models/        # Data models
-│   │   └── server.ts      # Main server file
-│   └── .env               # Backend environment variables
-│
-├── frontend/
-│   ├── src/
-│   │   ├── app/          # Next.js pages
-│   │   ├── components/   # React components
-│   │   └── lib/         # Utilities
-│   └── .env.local       # Frontend environment variables
-```
+- Teacher dashboard statistics are calculated from:
+  - `GET /api/classes/teacher/my-classes` - Get classes for aggregation
+  - `GET /api/classes/:classId/enrollments` - Get enrollments for each class
 
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+- Admin dashboard statistics are calculated by processing user data from:
+  - `GET /api/admin/users` - Get all users
+  - `GET /api/admin/pending-users` - Get pending users
 
 ## License
 

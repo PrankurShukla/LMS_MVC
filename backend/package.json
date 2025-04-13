@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "node prisma/seed.js"
   },
   "scripts": {
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "prisma migrate deploy",
+    "seed": "prisma db seed",
+    "docker-start": "npm run migrate && npm run seed && npm start"
   },
   "keywords": [],
   "author": "",

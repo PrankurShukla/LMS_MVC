@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardHeader from '@/components/DashboardHeader';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { classApi } from '@/lib/api';
 
 interface Class {
   id: number;
@@ -247,84 +247,67 @@ const SignOutModal = ({
 };
 
 export default function StudentDashboard() {
-  const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<{ name?: string, id?: number } | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [availableClasses, setAvailableClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
-  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    // Check if user is logged in and is a student
-    const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
-    
-    if (!token || !userStr) {
-      router.push('/login');
-      return;
-    }
-    
-    try {
-      const user = JSON.parse(userStr);
-      if (user.role !== 'student') {
-        router.push('/login');
-        return;
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
       }
-      setCurrentUser(user);
-      fetchStudentEnrollments(token);
-      fetchAvailableClasses(token);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
+    }
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [enrollmentsResponse, classesResponse] = await Promise.all([
+          classApi.getStudentEnrollments(),
+          classApi.getAllClasses()
+        ]);
+
+        setEnrollments(enrollmentsResponse.data);
+
+        // Filter out classes that the student is already enrolled in or has pending requests
+        const enrolledOrPendingClassIds = enrollmentsResponse.data
+          .filter((enrollment: Enrollment) => enrollment.status === 'approved' || enrollment.status === 'pending')
+          .map((enrollment: Enrollment) => enrollment.class.id);
+
+        const availableClasses = classesResponse.data.filter((cls: Class) => {
+          return !enrolledOrPendingClassIds.includes(cls.id);
+        });
+
+        setAvailableClasses(availableClasses);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchData();
+    } else {
       router.push('/login');
     }
-  }, []);
+  }, [router]);
 
-  const fetchStudentEnrollments = async (token: string) => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/student/my-enrollments`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setEnrollments(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching enrollments:', error);
-      toast.error('Failed to fetch your enrollments');
-      setLoading(false);
-    }
-  };
-
-  const fetchAvailableClasses = async (token: string) => {
-    try {
-      // Get all classes
-      const allClassesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      // Get my enrollments (including rejected ones)
-      const myEnrollmentsResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/student/my-enrollments`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      // Extract list of enrolled class IDs with approved or pending status
-      const enrolledOrPendingClassIds = myEnrollmentsResponse.data
-        .filter((enrollment: Enrollment) => enrollment.status === 'approved' || enrollment.status === 'pending')
-        .map((enrollment: Enrollment) => enrollment.class.id);
-      
-      // Filter out classes that the student is already enrolled in or has pending requests
-      const availableClasses = allClassesResponse.data.filter((cls: Class) => {
-        return !enrolledOrPendingClassIds.includes(cls.id);
-      });
-      
-      setAvailableClasses(availableClasses);
-    } catch (error) {
-      console.error('Error fetching available classes:', error);
-      toast.error('Failed to fetch available classes');
-    }
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/login');
   };
 
   const requestEnrollment = async (e: React.FormEvent) => {
@@ -332,327 +315,184 @@ export default function StudentDashboard() {
     if (!selectedClassId) return;
     
     try {
-      const token = localStorage.getItem('token');
-      setLoading(true);
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/classes/enroll`,
-        { classId: selectedClassId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      setIsSubmitting(true);
+      await classApi.enrollInClass(selectedClassId);
       
-      // Show appropriate message based on the response
-      if (response.data.message) {
-        toast.success(response.data.message);
-      } else {
-        toast.success('Enrollment request sent successfully');
-      }
-      
+      toast.success('Enrollment request sent successfully');
       setShowEnrollModal(false);
       setSelectedClassId(null);
       
       // Refresh data
-      fetchStudentEnrollments(token as string);
-      fetchAvailableClasses(token as string);
-      setLoading(false);
-    } catch (error: any) {
-      setLoading(false);
-      console.error('Error requesting enrollment:', error);
+      const [enrollmentsResponse, classesResponse] = await Promise.all([
+        classApi.getStudentEnrollments(),
+        classApi.getAllClasses()
+      ]);
       
-      // Display appropriate error message
-      if (error.response && error.response.data && error.response.data.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error('Failed to request enrollment');
-      }
+      setEnrollments(enrollmentsResponse.data);
+      
+      // Filter out classes that the student is already enrolled in
+      const enrolledClassIds = enrollmentsResponse.data
+        .filter((enrollment: Enrollment) => enrollment.status === 'approved' || enrollment.status === 'pending')
+        .map((enrollment: Enrollment) => enrollment.class.id);
+      
+      setAvailableClasses(classesResponse.data.filter((cls: Class) => 
+        !enrolledClassIds.includes(cls.id)
+      ));
+    } catch (error: any) {
+      console.error('Error requesting enrollment:', error);
+      toast.error(error.response?.data?.message || 'Failed to request enrollment');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Group enrollments by status
-  const approvedEnrollments = enrollments.filter(e => e.status === 'approved');
-  const pendingEnrollments = enrollments.filter(e => e.status === 'pending');
-  const rejectedEnrollments = enrollments.filter(e => e.status === 'rejected');
-
-  const initiateSignOut = () => {
-    setShowSignOutModal(true);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      setIsSigningOut(true);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      sessionStorage.setItem('userLoggedOut', 'true');
-      router.push('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('Failed to sign out');
-      setIsSigningOut(false);
-      setShowSignOutModal(false);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardHeader 
+          title="Student Dashboard"
+          userName={currentUser?.name}
+          onSignOut={() => setShowSignOutModal(true)}
+        />
+        <main className="container mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                  <div className="space-y-4">
+                    <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Student Dashboard</h1>
-            <p className="text-gray-500">Welcome back, {currentUser?.name}</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setShowEnrollModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              disabled={availableClasses.length === 0}
-            >
-              <svg
-                className="-ml-1 mr-2 h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Enroll in New Class
-            </button>
+    <div className="min-h-screen bg-gray-50">
+      <DashboardHeader 
+        title="Student Dashboard"
+        userName={currentUser?.name}
+        onSignOut={() => setShowSignOutModal(true)}
+      />
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8 flex justify-between items-center">
+          <h2 className="text-2xl font-semibold text-gray-900">My Classes</h2>
+          <button
+            onClick={() => setShowEnrollModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Enroll in Class
+          </button>
+        </div>
 
-            <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center space-x-2 text-sm focus:outline-none"
-              >
-                <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-lg">
-                  {currentUser?.name?.[0]?.toUpperCase() || 'S'}
-                </div>
-                <span className="hidden md:block font-medium text-gray-700">
-                  {currentUser?.name || 'Student User'}
-                </span>
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-
-              <AnimatePresence>
-                {showUserMenu && (
+        {/* Approved Enrollments */}
+        <div className="mb-8">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Active Classes</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {enrollments
+                .filter(enrollment => enrollment.status === 'approved')
+                .map(enrollment => (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    key={enrollment.id}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
+                    exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1"
                   >
-                    <Link
-                      href="/student/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                    >
-                      <svg
-                        className="mr-3 h-5 w-5 text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                      Profile Settings
-                    </Link>
-                    <button
-                      onClick={initiateSignOut}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
-                    >
-                      <svg
-                        className="mr-3 h-5 w-5 text-red-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                        />
-                      </svg>
-                      Sign Out
-                    </button>
+                    <ClassCard enrollment={enrollment} />
                   </motion.div>
-                )}
+                ))}
+            </AnimatePresence>
+          </div>
+          {enrollments.filter(e => e.status === 'approved').length === 0 && (
+            <div className="text-center py-8">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="mt-2 text-gray-500">You are not enrolled in any classes yet.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Pending Enrollments */}
+        {enrollments.filter(e => e.status === 'pending').length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Pending Enrollments</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AnimatePresence>
+                {enrollments
+                  .filter(enrollment => enrollment.status === 'pending')
+                  .map(enrollment => (
+                    <motion.div
+                      key={enrollment.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ClassCard enrollment={enrollment} />
+                    </motion.div>
+                  ))}
               </AnimatePresence>
             </div>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Enrolled Classes</p>
-                <p className="text-2xl font-bold text-gray-900">{approvedEnrollments.length}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Pending Enrollments</p>
-                <p className="text-2xl font-bold text-gray-900">{pendingEnrollments.length}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Available Classes</p>
-                <p className="text-2xl font-bold text-gray-900">{availableClasses.length}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="h-6 w-1/3 bg-gray-200 rounded"></div>
-                  <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
-                </div>
-                <div className="space-y-3">
-                  <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
-                  <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            {approvedEnrollments.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">My Classes</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {approvedEnrollments.map((enrollment) => (
-                    <ClassCard key={enrollment.id} enrollment={enrollment} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {pendingEnrollments.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Enrollments</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {pendingEnrollments.map((enrollment) => (
-                    <ClassCard key={enrollment.id} enrollment={enrollment} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {rejectedEnrollments.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Rejected Enrollments</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {rejectedEnrollments.map((enrollment) => (
-                    <ClassCard key={enrollment.id} enrollment={enrollment} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {approvedEnrollments.length === 0 && pendingEnrollments.length === 0 && rejectedEnrollments.length === 0 && (
-              <div className="text-center py-12">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No enrollments</h3>
-                <p className="mt-1 text-sm text-gray-500">Get started by enrolling in a class.</p>
-                <div className="mt-6">
-                  <button
-                    onClick={() => setShowEnrollModal(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    disabled={availableClasses.length === 0}
-                  >
-                    <svg
-                      className="-ml-1 mr-2 h-5 w-5"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    Enroll in Class
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
         )}
 
-        <EnrollModal
-          isOpen={showEnrollModal}
-          onClose={() => setShowEnrollModal(false)}
-          availableClasses={availableClasses}
-          selectedClassId={selectedClassId}
-          setSelectedClassId={setSelectedClassId}
-          onSubmit={requestEnrollment}
-          isSubmitting={loading}
-        />
+        {/* Rejected Enrollments */}
+        {enrollments.filter(e => e.status === 'rejected').length > 0 && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Rejected Enrollments</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AnimatePresence>
+                {enrollments
+                  .filter(enrollment => enrollment.status === 'rejected')
+                  .map(enrollment => (
+                    <motion.div
+                      key={enrollment.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ClassCard enrollment={enrollment} />
+                    </motion.div>
+                  ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
+      </main>
 
-        <SignOutModal
-          isOpen={showSignOutModal}
-          onClose={() => setShowSignOutModal(false)}
-          onConfirm={handleSignOut}
-          isLoading={isSigningOut}
-        />
-      </div>
+      <EnrollModal
+        isOpen={showEnrollModal}
+        onClose={() => {
+          setShowEnrollModal(false);
+          setSelectedClassId(null);
+        }}
+        availableClasses={availableClasses}
+        selectedClassId={selectedClassId}
+        setSelectedClassId={setSelectedClassId}
+        onSubmit={requestEnrollment}
+        isSubmitting={isSubmitting}
+      />
+
+      <SignOutModal
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        onConfirm={handleSignOut}
+        isLoading={false}
+      />
     </div>
   );
 } 
