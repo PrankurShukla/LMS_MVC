@@ -2,7 +2,6 @@ services:
   # Database
   - type: pserv
     name: lms-db
-    env: postgres
     plan: free
 
   # Backend
