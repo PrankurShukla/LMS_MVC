@@ -1,6 +1,6 @@
 services:
   # Database
-  - type: database
+  - type: pserv
     name: lms-db
     databaseName: lms
     user: postgres
