@@ -1,9 +1,8 @@
-services:
-  # PostgreSQL Database
-  - type: pserv
-    name: lms-db
+databases:
+  - name: lms-db
     plan: free
 
+services:
   # Backend API
   - type: web
     name: lms-backend
