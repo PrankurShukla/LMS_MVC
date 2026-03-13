@@ -1,11 +1,10 @@
 services:
-  # Postgres Database
+  # PostgreSQL Database
   - type: pserv
     name: lms-db
-    env: postgres
     plan: free
 
-  # Backend
+  # Backend API
   - type: web
     name: lms-backend
     env: docker
@@ -37,4 +36,4 @@ services:
         fromService:
           type: web
           name: lms-backend
-          property: url
+          property: host
