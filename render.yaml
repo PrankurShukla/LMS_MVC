@@ -1,7 +1,8 @@
 services:
-  # Database
+  # Postgres Database
   - type: pserv
     name: lms-db
+    env: postgres
     plan: free
 
   # Backend
@@ -29,11 +30,11 @@ services:
     env: docker
     dockerContext: frontend
     dockerfilePath: Dockerfile
+    dockerCommand: node server.js
     plan: free
     envVars:
       - key: NEXT_PUBLIC_API_URL
         fromService:
           type: web
           name: lms-backend
-          property: host
-    dockerCommand: node server.js
+          property: url
