@@ -35,23 +35,23 @@ COPY --from=builder /app/prisma ./prisma
 # Create startup script
 RUN printf '%s\n' \
     '#!/bin/sh' \
-    'echo "Waiting for database to be ready..."' \
-    'until pg_isready -h db -U postgres; do' \
-    '  sleep 1' \
-    'done' \
-    'echo "Database is ready!"' \
+    'echo "Starting Backend Application..."' \
     '' \
-    'echo "Creating database if it does not exist..."' \
-    'PGPASSWORD=postgres psql -h db -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = '"'"'lms'"'"'" | grep -q 1 || PGPASSWORD=postgres psql -h db -U postgres -c "CREATE DATABASE lms"' \
-    '' \
+    '# Run migrations' \
     'echo "Running migrations..."' \
     'npx prisma migrate deploy' \
     '' \
-    'echo "Seeding database..."' \
-    'npx prisma db seed' \
+    '# Seed database if SEED_DATABASE is true' \
+    'if [ "$SEED_DATABASE" = "true" ]; then' \
+    '  echo "Seeding database..."' \
+    '  npx prisma db seed' \
+    'fi' \
     '' \
-    'echo "Starting Prisma Studio..."' \
-    'npx prisma studio --port 5555 &' \
+    '# Start Prisma Studio only if explicitly requested' \
+    'if [ "$START_PRISMA_STUDIO" = "true" ]; then' \
+    '  echo "Starting Prisma Studio..."' \
+    '  npx prisma studio --port 5555 &' \
+    'fi' \
     '' \
     'echo "Starting application..."' \
     'exec npm start' \
